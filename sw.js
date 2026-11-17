@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION whenever a file changes so phones pick up the update.
-const VERSION = 'sm-v2';
+const VERSION = 'sm-v3';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

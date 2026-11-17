@@ -197,9 +197,30 @@ const GOODS = [
   {id:'m2',      n:'Browning M2',                                          min:12000, max:35000,  size:8, cat:'heavy'},
   {id:'stinger', n:'FIM-92 Stinger',                                       min:28000, max:85000,  size:6, cat:'heavy'},
   {id:'javelin', n:'FGM-148 Javelin',                                      min:60000, max:180000, size:7, cat:'heavy'},
+  // late game: military hardware (av = chance to be on offer on a given day, heat = heat per unit)
+  {id:'switchbl',n:{de:'Switchblade 300 (Kamikazedrohne)',en:'Switchblade 300 (loitering drone)'}, min:40000, max:120000, size:2, cat:'mil', av:.6},
+  {id:'humvee',  n:{de:'Humvee (bewaffnet)',en:'Humvee (armed)'},          min:80000,    max:250000,    size:60,  cat:'mil', av:.55},
+  {id:'btr80',   n:{de:'BTR-80 Schützenpanzer',en:'BTR-80 APC'},          min:250000,   max:800000,    size:150, cat:'mil', av:.5},
+  {id:'tomahawk',n:{de:'Tomahawk Marschflugkörper',en:'Tomahawk cruise missile'}, min:1200000, max:3000000, size:40, cat:'mil', av:.4},
+  {id:'tb2',     n:{de:'Bayraktar TB2 (Kampfdrohne)',en:'Bayraktar TB2 (combat drone)'}, min:1500000, max:4000000, size:120, cat:'mil', av:.45},
+  {id:'t72',     n:{de:'T-72 Kampfpanzer',en:'T-72 battle tank'},         min:800000,   max:2500000,   size:300, cat:'mil', av:.45},
+  {id:'m777',    n:{de:'M777 Haubitze',en:'M777 howitzer'},               min:1500000,  max:4500000,   size:150, cat:'mil', av:.4},
+  {id:'leo2',    n:{de:'Leopard 2A6 Kampfpanzer',en:'Leopard 2A6 battle tank'}, min:4000000, max:11000000, size:350, cat:'mil', av:.35},
+  {id:'abrams',  n:{de:'M1 Abrams Kampfpanzer',en:'M1 Abrams battle tank'}, min:5000000, max:13000000,  size:350, cat:'mil', av:.35},
+  {id:'himars',  n:'HIMARS',                                               min:4000000,  max:10000000,  size:250, cat:'mil', av:.3},
+  {id:'mi24',    n:{de:'Mi-24 Kampfhubschrauber',en:'Mi-24 attack helicopter'}, min:6000000, max:16000000, size:400, cat:'mil', av:.35},
+  {id:'reaper',  n:{de:'MQ-9 Reaper (Drohne)',en:'MQ-9 Reaper (drone)'},  min:12000000, max:35000000,  size:250, cat:'mil', av:.3},
+  {id:'mig29',   n:{de:'MiG-29 Kampfjet',en:'MiG-29 fighter jet'},        min:15000000, max:40000000,  size:600, cat:'mil', av:.3},
+  {id:'apache',  n:{de:'AH-64 Apache Kampfhubschrauber',en:'AH-64 Apache attack helicopter'}, min:25000000, max:60000000, size:450, cat:'mil', av:.25},
+  {id:'f16',     n:{de:'F-16 Kampfjet',en:'F-16 fighter jet'},            min:30000000, max:75000000,  size:650, cat:'mil', av:.25},
+  {id:'s300',    n:{de:'S-300 Flugabwehrbatterie',en:'S-300 air defense battery'}, min:60000000, max:150000000, size:800, cat:'mil', av:.2},
+  {id:'f35',     n:{de:'F-35A Tarnkappenjet',en:'F-35A stealth jet'},     min:80000000, max:180000000, size:700, cat:'mil', av:.15},
+  {id:'icbm',    n:{de:'Interkontinentalrakete (ICBM)',en:'Intercontinental missile (ICBM)'}, min:40000000, max:120000000, size:500, cat:'mil', av:.12, heat:25},
+  {id:'nuke',    n:{de:'Atomsprengkopf',en:'Nuclear warhead'},            min:200000000,max:600000000, size:30,  cat:'mil', av:.08, heat:45},
 ];
 const G = Object.fromEntries(GOODS.map(g => [g.id, g]));
-const HEATF = {ammo:.04, pistol:.06, smg:.1, rifle:.12, heavy:.25};
+const HEATF = {ammo:.04, pistol:.06, smg:.1, rifle:.12, heavy:.25, mil:.03};
+const heatOf = g => g.heat ?? g.size * HEATF[g.cat];
 
 // m = price multipliers per category (low = cheap source, high = hungry market)
 const CITIES = [
@@ -238,6 +259,8 @@ const VEHICLES = [
   {n:{de:'Transporter',en:'Van'},               cap:150,  price:35000},
   {n:{de:'Lastwagen',en:'Truck'},               cap:400,  price:140000},
   {n:{de:'Frachtcontainer',en:'Cargo container'},cap:1200, price:600000},
+  {n:{de:'Frachtflugzeug',en:'Cargo plane'},   cap:4000, price:8000000},
+  {n:{de:'Frachtschiff',en:'Cargo ship'},      cap:15000, price:60000000},
 ];
 const GUARD_PRICE = 2500, GUARD_WAGE = 150, GUARD_MAX = 8, VEST_PRICE = 4000, HEAL_PRICE = 60;
 const DEBT_RATE = .05, BANK_RATE = .004, CAMPAIGN_DAYS = 60;
@@ -251,6 +274,8 @@ const RANKS = [
   [5000000,{de:'Kriegsgewinnler',en:'War profiteer'}],
   [25000000,{de:'Schwarzmarkt-Baron',en:'Black market baron'}],
   [100000000,{de:'Pate des Schwarzmarkts',en:'Godfather of the black market'}],
+  [1000000000,{de:'Kriegsfürst',en:'Warlord'}],
+  [10000000000,{de:'Schattenmacht',en:'Shadow power'}],
 ];
 
 /* ================= i18n ================= */
@@ -376,10 +401,10 @@ en:{
 T.de.cheap='billig'; T.de.pricey='teuer'; T.en.cheap='cheap'; T.en.pricey='pricey';
 Object.assign(T.de, {startCap:'Start', withDebt:'Mit Schulden', noDebt:'Ohne Schulden', noDebtShort:'ohne Schulden',
   withDebtD:'Klassisch: 2.000 $ Bargeld, 5.500 $ Schulden bei Viktor.', noDebtD:'Entspannt: 2.000 $ Bargeld, keine Schulden.',
-  cats:{all:'Alle', pistol:'Pistolen', smg:'MPs', rifle:'Gewehre', heavy:'Schwer', ammo:'Munition', own:'Im Lager'}});
+  cats:{all:'Alle', pistol:'Pistolen', smg:'MPs', rifle:'Gewehre', heavy:'Schwer', mil:'Militär', ammo:'Munition', own:'Im Lager'}});
 Object.assign(T.en, {startCap:'Start', withDebt:'With debt', noDebt:'Debt-free', noDebtShort:'debt-free',
   withDebtD:'Classic: $2,000 cash, $5,500 owed to Viktor.', noDebtD:'Relaxed: $2,000 cash, no debt.',
-  cats:{all:'All', pistol:'Pistols', smg:'SMGs', rifle:'Rifles', heavy:'Heavy', ammo:'Ammo', own:'In stock'}});
+  cats:{all:'All', pistol:'Pistols', smg:'SMGs', rifle:'Rifles', heavy:'Heavy', mil:'Military', ammo:'Ammo', own:'In stock'}});
 const t = k => T[lang][k];
 const L = o => typeof o === 'string' ? o : o[lang];
 const gname = id => L(G[id].n);
@@ -422,8 +447,8 @@ function genPrices(){
   const off = new Set(); const nOff = Math.round(ids.length * rnd(.25, .4));
   while (off.size < nOff) off.add(pick(ids));
   for (const g of GOODS){
-    if (off.has(g.id)) { p[g.id] = null; continue; }
-    p[g.id] = Math.max(1, Math.round(rnd(g.min, g.max) * c.m[g.cat] * rnd(.9, 1.1)));
+    if (off.has(g.id) || Math.random() > (g.av ?? 1)) { p[g.id] = null; continue; }
+    p[g.id] = Math.max(1, Math.round(rnd(g.min, g.max) * (c.m[g.cat] ?? c.m.heavy) * rnd(.9, 1.1)));
   }
   S.prices = p;
 }
@@ -444,7 +469,8 @@ function dist(a, b){
 }
 function route(to){
   const km = dist(C[S.city], C[to]);
-  return {km, days: Math.min(4, 1 + Math.floor(km / 3000)), cost: Math.round((120 + km * .09) * (1 + S.veh * .35))};
+  // by plane you get anywhere within a day; distance only affects the price
+  return {km, days: 1, cost: Math.round((120 + km * .09) * (1 + S.veh * .35))};
 }
 
 function dailyTick(){
@@ -490,7 +516,7 @@ function arrive(){
   }
   // found goods
   if (Math.random() < .06 && free() > 0){
-    const g = pick(GOODS.filter(g => g.size <= free() && g.cat !== 'heavy'));
+    const g = pick(GOODS.filter(g => g.size <= free() && g.cat !== 'heavy' && g.cat !== 'mil'));
     if (g){
       const n = Math.min(rint(2, 8), Math.floor(free() / g.size));
       S.cargo[g.id] = (S.cargo[g.id] || 0) + n;
@@ -662,7 +688,7 @@ function trade(id, startMode){
       const pr = paid ? ` (${(price - paid) >= 0 ? '+' : ''}${money((price - paid) * q)})` : '';
       pushNews(t('sold')(q, gname(id), money(q * price), pr));
     }
-    S.heat = clamp(S.heat + q * g.size * HEATF[g.cat], 0, 100);
+    S.heat = clamp(S.heat + q * heatOf(g), 0, 100);
     closeModal(); save(); render();
   };
   draw();
@@ -790,7 +816,7 @@ function bindFinish(m){ const b = m.querySelector('[data-act=finish]'); if (b) b
 
 function renderMarket(m){
   const news = S.news.length ? `<div class="news ${S.news.some(n => n.bad) ? 'badn' : ''}">${S.news.slice(-4).map(n => `<p>${n.m}</p>`).join('')}</div>` : '';
-  const cats = ['all', 'own', 'pistol', 'smg', 'rifle', 'heavy', 'ammo'];
+  const cats = ['all', 'own', 'pistol', 'smg', 'rifle', 'heavy', 'mil', 'ammo'];
   const chips = `<div class="chips">${cats.map(c => `<button data-cat="${c}" class="${mcat === c ? 'on' : ''}">${t('cats')[c]}</button>`).join('')}</div>`;
   const shown = GOODS.filter(g => mcat === 'all' || (mcat === 'own' ? S.cargo[g.id] : g.cat === mcat))
     // goods on offer first, unavailable ones at the bottom
