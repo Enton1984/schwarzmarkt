@@ -125,6 +125,10 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:6px 0 4px}
 .toast{position:fixed;left:50%;top:calc(12px + var(--safe-t));transform:translateX(-50%);background:#000e;border:1px solid var(--line);
   padding:9px 14px;border-radius:20px;font-size:13.5px;z-index:20;animation:fade .15s;max-width:90%;text-align:center}
 .noanim,.noanim .sheet{animation:none}
+.chips{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 10px;padding:0 16px 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:7px 13px;font-size:13px;color:var(--dim)}
+.chips button.on{background:var(--accent);border-color:var(--accent);color:#1a1205;font-weight:600}
 @keyframes fade{from{opacity:0}}
 @keyframes slide{from{transform:translateY(40px);opacity:0}}
 .hs{width:100%;border-collapse:collapse;font-size:14px}
@@ -152,18 +156,47 @@ const store = {
 
 /* ================= data ================= */
 const GOODS = [
-  {id:'ammo',    n:{de:'Munition (Kiste)',en:'Ammo (crate)'},          min:150,  max:700,   size:1, cat:'ammo'},
-  {id:'glock',   n:'Glock 17',                                          min:250,  max:1100,  size:1, cat:'pistol'},
-  {id:'beretta', n:'Beretta 92FS',                                      min:300,  max:1300,  size:1, cat:'pistol'},
-  {id:'uzi',     n:'IMI Uzi',                                           min:600,  max:2400,  size:1, cat:'smg'},
-  {id:'mp5',     n:'H&K MP5',                                           min:1100, max:4200,  size:2, cat:'smg'},
-  {id:'ak47',    n:'AK-47',                                             min:400,  max:2800,  size:2, cat:'rifle'},
-  {id:'m4',      n:'Colt M4A1',                                         min:1500, max:5800,  size:2, cat:'rifle'},
-  {id:'svd',     n:{de:'Dragunow SWD',en:'Dragunov SVD'},               min:2800, max:8500,  size:3, cat:'rifle'},
-  {id:'grenade', n:{de:'Handgranaten (Kiste)',en:'Grenades (crate)'},   min:900,  max:3600,  size:2, cat:'heavy'},
-  {id:'rpg',     n:'RPG-7',                                             min:4500, max:14000, size:4, cat:'heavy'},
-  {id:'barrett', n:'Barrett M82',                                       min:8000, max:24000, size:5, cat:'heavy'},
-  {id:'stinger', n:'FIM-92 Stinger',                                    min:28000,max:85000, size:6, cat:'heavy'},
+  // ammo
+  {id:'ammo',    n:{de:'Munition (Kiste)',en:'Ammo (crate)'},             min:150,   max:700,    size:1, cat:'ammo'},
+  {id:'ammo50',  n:{de:'.50 BMG Munition (Kiste)',en:'.50 BMG ammo (crate)'}, min:700, max:2600, size:1, cat:'ammo'},
+  {id:'ammohvy', n:{de:'Granaten für Werfer (Kiste)',en:'Launcher rounds (crate)'}, min:1500, max:5000, size:2, cat:'ammo'},
+  // pistols & revolvers
+  {id:'makarov', n:{de:'Makarow PM',en:'Makarov PM'},                     min:100,   max:500,    size:1, cat:'pistol'},
+  {id:'glock',   n:'Glock 17',                                             min:250,   max:1100,   size:1, cat:'pistol'},
+  {id:'m1911',   n:'Colt M1911',                                           min:300,   max:1200,   size:1, cat:'pistol'},
+  {id:'beretta', n:'Beretta 92FS',                                         min:300,   max:1300,   size:1, cat:'pistol'},
+  {id:'p226',    n:'SIG Sauer P226',                                       min:400,   max:1500,   size:1, cat:'pistol'},
+  {id:'sw29',    n:'Smith & Wesson Model 29',                              min:450,   max:1600,   size:1, cat:'pistol'},
+  {id:'deagle',  n:'Desert Eagle',                                         min:700,   max:2400,   size:1, cat:'pistol'},
+  // submachine guns
+  {id:'skorpion',n:'Škorpion vz. 61',                                      min:300,   max:1300,   size:1, cat:'smg'},
+  {id:'uzi',     n:'IMI Uzi',                                              min:600,   max:2400,   size:1, cat:'smg'},
+  {id:'mp5',     n:'H&K MP5',                                              min:1100,  max:4200,   size:2, cat:'smg'},
+  {id:'ump',     n:'H&K UMP45',                                            min:1300,  max:4500,   size:2, cat:'smg'},
+  {id:'p90',     n:'FN P90',                                               min:1800,  max:5500,   size:2, cat:'smg'},
+  // shotguns & rifles
+  {id:'rem870',  n:'Remington 870',                                        min:300,   max:1300,   size:2, cat:'rifle'},
+  {id:'benelli', n:'Benelli M4',                                           min:1200,  max:4000,   size:2, cat:'rifle'},
+  {id:'ak47',    n:'AK-47',                                                min:400,   max:2800,   size:2, cat:'rifle'},
+  {id:'ak74',    n:'AK-74',                                                min:500,   max:3200,   size:2, cat:'rifle'},
+  {id:'m16',     n:'M16A2',                                                min:1200,  max:4800,   size:2, cat:'rifle'},
+  {id:'m4',      n:'Colt M4A1',                                            min:1500,  max:5800,   size:2, cat:'rifle'},
+  {id:'g36',     n:'H&K G36',                                              min:2000,  max:6500,   size:2, cat:'rifle'},
+  {id:'aug',     n:'Steyr AUG',                                            min:2200,  max:6800,   size:2, cat:'rifle'},
+  {id:'scar',    n:'FN SCAR-L',                                            min:2500,  max:7500,   size:2, cat:'rifle'},
+  {id:'rem700',  n:'Remington 700',                                        min:1500,  max:5000,   size:3, cat:'rifle'},
+  {id:'svd',     n:{de:'Dragunow SWD',en:'Dragunov SVD'},                  min:2800,  max:8500,   size:3, cat:'rifle'},
+  // heavy
+  {id:'grenade', n:{de:'Handgranaten (Kiste)',en:'Grenades (crate)'},      min:900,   max:3600,   size:2, cat:'heavy'},
+  {id:'claymore',n:{de:'Claymore-Minen (Kiste)',en:'Claymore mines (crate)'}, min:1500, max:5000, size:2, cat:'heavy'},
+  {id:'at4',     n:'AT4',                                                  min:2500,  max:8000,   size:3, cat:'heavy'},
+  {id:'pkm',     n:'PKM',                                                  min:3500,  max:11000,  size:3, cat:'heavy'},
+  {id:'m249',    n:'M249 SAW',                                             min:5000,  max:15000,  size:3, cat:'heavy'},
+  {id:'rpg',     n:'RPG-7',                                                min:4500,  max:14000,  size:4, cat:'heavy'},
+  {id:'barrett', n:'Barrett M82',                                          min:8000,  max:24000,  size:5, cat:'heavy'},
+  {id:'m2',      n:'Browning M2',                                          min:12000, max:35000,  size:8, cat:'heavy'},
+  {id:'stinger', n:'FIM-92 Stinger',                                       min:28000, max:85000,  size:6, cat:'heavy'},
+  {id:'javelin', n:'FGM-148 Javelin',                                      min:60000, max:180000, size:7, cat:'heavy'},
 ];
 const G = Object.fromEntries(GOODS.map(g => [g.id, g]));
 const HEATF = {ammo:.04, pistol:.06, smg:.1, rifle:.12, heavy:.25};
@@ -277,7 +310,7 @@ de:{
   noHS:'Noch keine Einträge.',
   help:[
     'Kauf Waffen dort, wo sie billig sind, und verkauf sie dort, wo sie gebraucht werden. Jede Stadt hat eigene Preisniveaus – die Tags <span class="tag lo">billig</span> und <span class="tag hi">teuer</span> zeigen dir, wie der heutige Preis im Vergleich liegt.',
-    'Du startest in Hamburg mit Schulden bei Kredithai Viktor. Seine Zinsen (5 % pro Tag) fressen dich auf, wenn du nicht schnell zurückzahlst. Bank und Kredithai gibt es nur in Hamburg.',
+    'Du startest in Hamburg – klassisch mit Schulden bei Kredithai Viktor, oder ohne, wenn du es entspannter magst. Seine Zinsen (5 % pro Tag) fressen dich auf, wenn du nicht schnell zurückzahlst. Bank und Kredithai gibt es nur in Hamburg.',
     'Reisen kostet Zeit und Geld. Je mehr und je schwerere Ware du bewegst, desto höher steigt deine Fahndungsstufe – und desto öfter gerätst du in Kontrollen.',
     'Größere Fahrzeuge bringen mehr Lagerplatz. Leibwächter und eine Schutzweste helfen bei Überfällen. Bargeld kann geraubt werden – Geld auf der Bank nicht.',
     'Kampagne: Nach 60 Tagen zählt Bargeld + Bank − Schulden. Endlos: Kein Limit, aber die Welt wird mit jedem Tag gefährlicher. Beende das Spiel über „Ruhestand“, um dein Ergebnis zu sichern.',
@@ -334,13 +367,19 @@ en:{
   noHS:'No entries yet.',
   help:[
     'Buy weapons where they are cheap and sell them where they are needed. Every city has its own price level – the <span class="tag lo">cheap</span> and <span class="tag hi">pricey</span> tags show how today\'s price compares.',
-    'You start in Hamburg owing money to Viktor the loan shark. His interest (5% per day) will eat you alive unless you pay him back fast. The bank and the loan shark are only in Hamburg.',
+    'You start in Hamburg – classically in debt to Viktor the loan shark, or debt-free if you prefer it relaxed. His interest (5% per day) will eat you alive unless you pay him back fast. The bank and the loan shark are only in Hamburg.',
     'Travel costs time and money. The more – and the heavier – goods you move, the higher your heat, and the more often you run into checks.',
     'Bigger vehicles give more cargo space. Bodyguards and body armor help in fights. Cash can be stolen – money in the bank can\'t.',
     'Campaign: after 60 days your score is cash + bank − debt. Endless: no limit, but the world gets more dangerous every day. End the game via "Retire" to lock in your score.',
   ],
 }};
 T.de.cheap='billig'; T.de.pricey='teuer'; T.en.cheap='cheap'; T.en.pricey='pricey';
+Object.assign(T.de, {startCap:'Start', withDebt:'Mit Schulden', noDebt:'Ohne Schulden', noDebtShort:'ohne Schulden',
+  withDebtD:'Klassisch: 2.000 $ Bargeld, 5.500 $ Schulden bei Viktor.', noDebtD:'Entspannt: 2.000 $ Bargeld, keine Schulden.',
+  cats:{all:'Alle', pistol:'Pistolen', smg:'MPs', rifle:'Gewehre', heavy:'Schwer', ammo:'Munition', own:'Im Lager'}});
+Object.assign(T.en, {startCap:'Start', withDebt:'With debt', noDebt:'Debt-free', noDebtShort:'debt-free',
+  withDebtD:'Classic: $2,000 cash, $5,500 owed to Viktor.', noDebtD:'Relaxed: $2,000 cash, no debt.',
+  cats:{all:'All', pistol:'Pistols', smg:'SMGs', rifle:'Rifles', heavy:'Heavy', ammo:'Ammo', own:'In stock'}});
 const t = k => T[lang][k];
 const L = o => typeof o === 'string' ? o : o[lang];
 const gname = id => L(G[id].n);
@@ -353,10 +392,12 @@ let S = null;          // game state
 let view = 'market';   // active tab
 let screen = 'title';  // title | game | highscores | help
 let selMode = store.get('sm_mode') || 'campaign';
+let selNoDebt = !!store.get('sm_nodebt');
+let mcat = 'all';      // market category filter
 
-function newGame(mode, name){
-  S = {v:1, mode, name: name || t('namePh'), day:1, maxDay: mode === 'campaign' ? CAMPAIGN_DAYS : 0,
-    city:'hamburg', cash:2000, bank:0, debt:5500, health:100, heat:0, veh:0, guards:0, vest:false,
+function newGame(mode, name, noDebt){
+  S = {v:1, mode, name: name || t('namePh'), day:1, maxDay: mode === 'campaign' ? CAMPAIGN_DAYS : 0, noDebt:!!noDebt,
+    city:'hamburg', cash:2000, bank:0, debt: noDebt ? 0 : 5500, health:100, heat:0, veh:0, guards:0, vest:false,
     cargo:{}, paid:{}, prices:{}, news:[], log:[], over:false};
   genPrices();
   pushNews(t('arrived')(cname('hamburg')));
@@ -377,8 +418,8 @@ function pushNews(msg, bad){ S.news.push({m:msg, bad:!!bad}); S.log.unshift({d:S
 function genPrices(){
   const c = C[S.city]; const p = {};
   const ids = GOODS.map(g => g.id);
-  // 2–4 goods are not on offer today
-  const off = new Set(); const nOff = rint(2, 4);
+  // roughly a quarter to 40 % of goods are not on offer today
+  const off = new Set(); const nOff = Math.round(ids.length * rnd(.25, .4));
   while (off.size < nOff) off.add(pick(ids));
   for (const g of GOODS){
     if (off.has(g.id)) { p[g.id] = null; continue; }
@@ -655,7 +696,7 @@ function endGame(dead){
   const sc = score();
   const hs = store.get('sm_hs') || {campaign:[], endless:[]};
   const list = hs[S.mode] || (hs[S.mode] = []);
-  const entry = {n:S.name, s:sc, d:Math.min(S.day, S.maxDay || S.day), dead, ts:Date.now()};
+  const entry = {n:S.name, s:sc, d:Math.min(S.day, S.maxDay || S.day), dead, nd:!!S.noDebt, ts:Date.now()};
   const isTop = !list.length || sc > Math.max(...list.map(e => e.s));
   list.push(entry); list.sort((a, b) => b.s - a.s); list.length = Math.min(list.length, 10);
   store.set('sm_hs', hs);
@@ -749,7 +790,12 @@ function bindFinish(m){ const b = m.querySelector('[data-act=finish]'); if (b) b
 
 function renderMarket(m){
   const news = S.news.length ? `<div class="news ${S.news.some(n => n.bad) ? 'badn' : ''}">${S.news.slice(-4).map(n => `<p>${n.m}</p>`).join('')}</div>` : '';
-  const rows = GOODS.map(g => {
+  const cats = ['all', 'own', 'pistol', 'smg', 'rifle', 'heavy', 'ammo'];
+  const chips = `<div class="chips">${cats.map(c => `<button data-cat="${c}" class="${mcat === c ? 'on' : ''}">${t('cats')[c]}</button>`).join('')}</div>`;
+  const shown = GOODS.filter(g => mcat === 'all' || (mcat === 'own' ? S.cargo[g.id] : g.cat === mcat))
+    // goods on offer first, unavailable ones at the bottom
+    .sort((a, b) => (!S.prices[a.id]) - (!S.prices[b.id]));
+  const rows = shown.map(g => {
     const p = S.prices[g.id], own = S.cargo[g.id] || 0, paid = S.paid[g.id];
     let sub = own ? `${t('own')}: ${fnum(own)}` : `${t('size')}: ${g.size}`;
     let cls = '';
@@ -758,8 +804,9 @@ function renderMarket(m){
       <div class="nm"><b>${gname(g.id)}</b><span class="num">${sub}</span></div>
       <div class="pr num">${p ? `<b class="${cls}">${money(p)}</b><span>${priceTag(g.id)}</span>` : `<span class="dim">${t('notAvail')}</span>`}</div></button>`;
   }).join('');
-  m.innerHTML = lastDayBar() + news + `<div class="list">${rows}</div>`;
+  m.innerHTML = lastDayBar() + news + chips + `<div class="list">${rows || `<p class="dim">${t('empty')}</p>`}</div>`;
   m.querySelectorAll('[data-g]').forEach(b => b.onclick = () => trade(b.dataset.g));
+  m.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { mcat = b.dataset.cat; render(); });
   bindFinish(m);
 }
 
@@ -876,13 +923,17 @@ function renderTitle(app){
         <button class="mode ${selMode === 'campaign' ? 'sel' : ''}" data-mode="campaign"><b>${t('campaign')}</b><span>${t('campaignD')}</span></button>
         <button class="mode ${selMode === 'endless' ? 'sel' : ''}" data-mode="endless"><b>∞ ${t('endless')}</b><span>${t('endlessD')}</span></button>
       </div></div>
+    <div class="field"><label>${t('startCap')}</label>
+      <div class="seg" style="margin:0"><button data-debt="1" class="${selNoDebt ? '' : 'on'}">${t('withDebt')}</button><button data-debt="0" class="${selNoDebt ? 'on' : ''}">${t('noDebt')}</button></div>
+      <span class="dim" style="font-size:12.5px">${selNoDebt ? t('noDebtD') : t('withDebtD')}</span></div>
     <button class="btn ${canCont ? '' : 'primary'}" data-a="start">${t('start')}</button>
     <div class="row"><button class="btn" data-a="hs">${t('highscores')}</button><button class="btn" data-a="help">${t('howto')}</button></div>
   </div>`;
   app.querySelectorAll('[data-l]').forEach(b => b.onclick = () => setLang(b.dataset.l));
   app.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { selMode = b.dataset.mode; store.set('sm_mode', selMode); render(); });
+  app.querySelectorAll('[data-debt]').forEach(b => b.onclick = () => { selNoDebt = b.dataset.debt === '0'; store.set('sm_nodebt', selNoDebt); render(); });
   const nm = $('#nm'); nm.oninput = () => store.set('sm_name', nm.value);
-  const start = () => { newGame(selMode, nm.value.trim()); view = 'market'; screen = 'game'; render(); };
+  const start = () => { newGame(selMode, nm.value.trim(), selNoDebt); view = 'market'; mcat = 'all'; screen = 'game'; render(); };
   app.querySelector('[data-a=start]').onclick = () => canCont ? confirmBox(t('overwrite'), start) : start();
   if (canCont) app.querySelector('[data-a=cont]').onclick = () => { S = saved; view = 'market'; screen = 'game'; render(); };
   app.querySelector('[data-a=hs]').onclick = () => { screen = 'highscores'; render(); };
@@ -896,7 +947,7 @@ function renderHS(app){
   app.innerHTML = `<div class="title">
     <div class="logo"><h1 style="font-size:28px">${t('highscores').toUpperCase()}</h1></div>
     <div class="seg"><button data-t="campaign" class="${hsTab === 'campaign' ? 'on' : ''}">${t('campaign')}</button><button data-t="endless" class="${hsTab === 'endless' ? 'on' : ''}">∞ ${t('endless')}</button></div>
-    <div class="card">${list.length ? `<table class="hs num">${list.map((e, i) => `<tr><td class="dim">${i + 1}.</td><td>${e.dead ? '† ' : ''}${esc(e.n)}<br><span class="dim" style="font-size:12px">${rankOf(e.s)} · ${t('day')} ${e.d}</span></td><td><b>${money(e.s)}</b></td></tr>`).join('')}</table>` : `<p style="margin:0">${t('noHS')}</p>`}</div>
+    <div class="card">${list.length ? `<table class="hs num">${list.map((e, i) => `<tr><td class="dim">${i + 1}.</td><td>${e.dead ? '† ' : ''}${esc(e.n)}<br><span class="dim" style="font-size:12px">${rankOf(e.s)} · ${t('day')} ${e.d}${e.nd ? ' · ' + t('noDebtShort') : ''}</span></td><td><b>${money(e.s)}</b></td></tr>`).join('')}</table>` : `<p style="margin:0">${t('noHS')}</p>`}</div>
     <button class="btn" data-a="back">${t('back')}</button></div>`;
   app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { hsTab = b.dataset.t; render(); });
   app.querySelector('[data-a=back]').onclick = () => { screen = S ? 'game' : 'title'; render(); };
