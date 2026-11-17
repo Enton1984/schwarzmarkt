@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0e0d0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Schwarzmarkt">
+<title>Schwarzmarkt</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#0e0d0b; --panel:#1a1814; --panel2:#24211b; --line:#3a3429;
+  --text:#ece4d4; --dim:#9a8f7c; --accent:#e0a526; --accent2:#c0392b; --good:#5fbf6a; --bad:#e2574c;
+  --heat:#ff7a2f; --r:12px;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;border:0;cursor:pointer}
+input{font:inherit}
+.num{font-variant-numeric:tabular-nums}
+#app{max-width:560px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+
+/* ---------- title ---------- */
+.title{flex:1;overflow:auto;padding:calc(28px + var(--safe-t)) 16px calc(24px + var(--safe-b));display:flex;flex-direction:column;gap:14px}
+.logo{text-align:center;margin:18px 0 6px}
+.logo h1{margin:0;font-size:clamp(24px,8.4vw,40px);letter-spacing:.08em;font-weight:900;color:var(--accent);
+  text-shadow:0 2px 0 #000,0 0 24px #e0a52633}
+.logo p{margin:6px 0 0;color:var(--dim);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.field input{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;color:var(--text);outline:none}
+.field input:focus{border-color:var(--accent)}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;font-weight:600;text-align:center}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--accent);color:#1a1205;border-color:var(--accent)}
+.btn.danger{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.btn.small{padding:8px 10px;font-size:13px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:left}
+.mode b{display:block;font-size:16px;margin-bottom:4px}
+.mode span{color:var(--dim);font-size:12.5px}
+.mode.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.langsw{display:flex;justify-content:center;gap:6px}
+.langsw button{background:none;border:1px solid var(--line);border-radius:20px;padding:6px 14px;color:var(--dim);font-size:13px}
+.langsw button.on{color:var(--accent);border-color:var(--accent)}
+
+/* ---------- game ---------- */
+.top{padding:calc(10px + var(--safe-t)) 16px 10px;background:linear-gradient(#17150f,#0e0d0b);border-bottom:1px solid var(--line)}
+.loc{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.loc h2{margin:0;font-size:21px;font-weight:800}
+.loc h2 small{font-size:13px;color:var(--dim);font-weight:500;margin-left:6px}
+.day{color:var(--accent);font-weight:700;font-size:14px;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}
+.stat{background:var(--panel);border-radius:9px;padding:6px 8px;min-width:0}
+.stat i{display:block;font-style:normal;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.stat b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:4px;border-radius:2px;background:#2c281f;margin-top:4px;overflow:hidden}
+.bar>div{height:100%}
+.main{flex:1;overflow-y:auto;padding:12px 16px 16px;-webkit-overflow-scrolling:touch}
+.news{background:#2a1f0c;border:1px solid #5a4214;border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:13.5px}
+.news.badn{background:#2b1311;border-color:#5e221c}
+.news p{margin:0}
+.news p+p{margin-top:6px}
+.sec{font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin:14px 2px 8px}
+.sec:first-child{margin-top:0}
+.list{display:flex;flex-direction:column;gap:7px}
+.item{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:11px 12px;text-align:left;width:100%}
+.item:active{background:var(--panel2)}
+.item .nm{flex:1;min-width:0}
+.item .nm b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .nm span{font-size:12px;color:var(--dim)}
+.item .pr{text-align:right;white-space:nowrap}
+.item .pr b{display:block;font-size:15px}
+.item .pr span{font-size:12px}
+.item.off{opacity:.45}
+.tag{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:6px;background:#3a3020;color:var(--accent);margin-left:6px;vertical-align:1px}
+.tag.lo{background:#173520;color:var(--good)}
+.tag.hi{background:#3a1715;color:var(--bad)}
+.up{color:var(--good)}.down{color:var(--bad)}.dim{color:var(--dim)}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);background:#13110d;border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
+.tabs button{background:none;padding:9px 0 10px;color:var(--dim);font-size:11.5px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabs button.on{color:var(--accent)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.card h3{margin:0 0 4px;font-size:15px}
+.card p{margin:0 0 10px;color:var(--dim);font-size:13px}
+.card .row{margin-top:4px}
+.kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #2a261e;font-size:14px}
+.kv:last-child{border:0}
+.endbar{margin-bottom:12px}
+
+/* ---------- modal ---------- */
+.ov{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:10;animation:fade .15s}
+.sheet{background:var(--panel);border-top:1px solid var(--line);border-radius:18px 18px 0 0;width:100%;max-width:560px;max-height:88%;overflow:auto;
+  padding:18px 16px calc(16px + var(--safe-b));animation:slide .2s ease-out}
+.sheet h3{margin:0 0 4px;font-size:19px}
+.sheet .sub{color:var(--dim);font-size:13.5px;margin:0 0 12px}
+.sheet .body{font-size:14.5px;margin-bottom:14px}
+.sheet .body p{margin:0 0 8px}
+.btns{display:flex;flex-direction:column;gap:8px}
+.qty{display:flex;align-items:center;gap:8px;margin:10px 0}
+.qty button{width:46px;height:46px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:22px;font-weight:700}
+.qty input[type=number]{flex:1;min-width:0;text-align:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;height:46px;color:var(--text);font-size:20px;font-weight:700}
+input[type=range]{width:100%;accent-color:var(--accent);margin:6px 0 4px}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.seg button{padding:10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-weight:600;color:var(--dim)}
+.seg button.on{background:var(--accent);color:#1a1205;border-color:var(--accent)}
+.flog{background:var(--bg);border-radius:10px;padding:8px 10px;font-size:13px;max-height:150px;overflow:auto;margin:8px 0 12px}
+.flog p{margin:0 0 3px}
+.foes{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+.foes span{width:22px;height:22px;border-radius:50%;background:var(--accent2);display:inline-block}
+.foes span.x{background:#3a2a28}
+.toast{position:fixed;left:50%;top:calc(12px + var(--safe-t));transform:translateX(-50%);background:#000e;border:1px solid var(--line);
+  padding:9px 14px;border-radius:20px;font-size:13.5px;z-index:20;animation:fade .15s;max-width:90%;text-align:center}
+.noanim,.noanim .sheet{animation:none}
+@keyframes fade{from{opacity:0}}
+@keyframes slide{from{transform:translateY(40px);opacity:0}}
+.hs{width:100%;border-collapse:collapse;font-size:14px}
+.hs td{padding:7px 4px;border-bottom:1px solid #2a261e}
+.hs td:last-child{text-align:right}
+.help p{margin:0 0 9px;font-size:14px;color:var(--text)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const rint = (a, b) => Math.floor(rnd(a, b + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+
+/* ================= data ================= */
+const GOODS = [
+  {id:'ammo',    n:{de:'Munition (Kiste)',en:'Ammo (crate)'},          min:150,  max:700,   size:1, cat:'ammo'},
+  {id:'glock',   n:'Glock 17',                                          min:250,  max:1100,  size:1, cat:'pistol'},
+  {id:'beretta', n:'Beretta 92FS',                                      min:300,  max:1300,  size:1, cat:'pistol'},
+  {id:'uzi',     n:'IMI Uzi',                                           min:600,  max:2400,  size:1, cat:'smg'},
+  {id:'mp5',     n:'H&K MP5',                                           min:1100, max:4200,  size:2, cat:'smg'},
+  {id:'ak47',    n:'AK-47',                                             min:400,  max:2800,  size:2, cat:'rifle'},
+  {id:'m4',      n:'Colt M4A1',                                         min:1500, max:5800,  size:2, cat:'rifle'},
+  {id:'svd',     n:{de:'Dragunow SWD',en:'Dragunov SVD'},               min:2800, max:8500,  size:3, cat:'rifle'},
+  {id:'grenade', n:{de:'Handgranaten (Kiste)',en:'Grenades (crate)'},   min:900,  max:3600,  size:2, cat:'heavy'},
+  {id:'rpg',     n:'RPG-7',                                             min:4500, max:14000, size:4, cat:'heavy'},
+  {id:'barrett', n:'Barrett M82',                                       min:8000, max:24000, size:5, cat:'heavy'},
+  {id:'stinger', n:'FIM-92 Stinger',                                    min:28000,max:85000, size:6, cat:'heavy'},
+];
+const G = Object.fromEntries(GOODS.map(g => [g.id, g]));
+const HEATF = {ammo:.04, pistol:.06, smg:.1, rifle:.12, heavy:.25};
+
+// m = price multipliers per category (low = cheap source, high = hungry market)
+const CITIES = [
+  {id:'hamburg',  de:'Hamburg',       en:'Hamburg',      c:{de:'Deutschland',en:'Germany'},      f:'🇩🇪', lat:53.55, lon:9.99,    home:true,
+    m:{pistol:1.35, smg:1.3,  rifle:1.25, heavy:1.2,  ammo:1.1}},
+  {id:'antwerp',  de:'Antwerpen',     en:'Antwerp',      c:{de:'Belgien',en:'Belgium'},          f:'🇧🇪', lat:51.22, lon:4.40,
+    m:{pistol:1.1,  smg:1.0,  rifle:1.05, heavy:1.1,  ammo:.75}},
+  {id:'marseille',de:'Marseille',     en:'Marseille',    c:{de:'Frankreich',en:'France'},        f:'🇫🇷', lat:43.30, lon:5.37,
+    m:{pistol:1.2,  smg:1.15, rifle:1.35, heavy:1.15, ammo:1.0}},
+  {id:'naples',   de:'Neapel',        en:'Naples',       c:{de:'Italien',en:'Italy'},            f:'🇮🇹', lat:40.85, lon:14.27,
+    m:{pistol:1.25, smg:1.2,  rifle:1.1,  heavy:1.3,  ammo:1.05}},
+  {id:'odessa',   de:'Odessa',        en:'Odesa',        c:{de:'Ukraine',en:'Ukraine'},          f:'🇺🇦', lat:46.48, lon:30.72,
+    m:{pistol:.9,   smg:.85,  rifle:.7,   heavy:.75,  ammo:.8}},
+  {id:'istanbul', de:'Istanbul',      en:'Istanbul',     c:{de:'Türkei',en:'Türkiye'},           f:'🇹🇷', lat:41.01, lon:28.98,
+    m:{pistol:.95,  smg:.8,   rifle:.95,  heavy:1.0,  ammo:.9}},
+  {id:'dubai',    de:'Dubai',         en:'Dubai',        c:{de:'VAE',en:'UAE'},                  f:'🇦🇪', lat:25.20, lon:55.27,
+    m:{pistol:1.0,  smg:1.0,  rifle:1.0,  heavy:.85,  ammo:1.0}},
+  {id:'lagos',    de:'Lagos',         en:'Lagos',        c:{de:'Nigeria',en:'Nigeria'},          f:'🇳🇬', lat:6.52,  lon:3.38,
+    m:{pistol:1.15, smg:1.2,  rifle:1.35, heavy:1.45, ammo:1.3}},
+  {id:'joburg',   de:'Johannesburg',  en:'Johannesburg', c:{de:'Südafrika',en:'South Africa'},   f:'🇿🇦', lat:-26.2, lon:28.05,
+    m:{pistol:1.3,  smg:1.1,  rifle:1.1,  heavy:1.15, ammo:1.15}},
+  {id:'karachi',  de:'Karatschi',     en:'Karachi',      c:{de:'Pakistan',en:'Pakistan'},        f:'🇵🇰', lat:24.86, lon:67.01,
+    m:{pistol:.8,   smg:.9,   rifle:.75,  heavy:1.1,  ammo:.85}},
+  {id:'bangkok',  de:'Bangkok',       en:'Bangkok',      c:{de:'Thailand',en:'Thailand'},        f:'🇹🇭', lat:13.75, lon:100.5,
+    m:{pistol:1.05, smg:.95,  rifle:1.15, heavy:1.25, ammo:1.0}},
+  {id:'panama',   de:'Panama-Stadt',  en:'Panama City',  c:{de:'Panama',en:'Panama'},            f:'🇵🇦', lat:8.98,  lon:-79.52,
+    m:{pistol:1.2,  smg:1.25, rifle:1.3,  heavy:1.35, ammo:1.2}},
+  {id:'miami',    de:'Miami',         en:'Miami',        c:{de:'USA',en:'USA'},                  f:'🇺🇸', lat:25.76, lon:-80.19,
+    m:{pistol:.6,   smg:.8,   rifle:.7,   heavy:1.3,  ammo:.6}},
+];
+const C = Object.fromEntries(CITIES.map(c => [c.id, c]));
+
+const VEHICLES = [
+  {n:{de:'Sporttasche',en:'Duffel bag'},        cap:20,   price:0},
+  {n:{de:'Kombi',en:'Station wagon'},           cap:60,   price:9000},
+  {n:{de:'Transporter',en:'Van'},               cap:150,  price:35000},
+  {n:{de:'Lastwagen',en:'Truck'},               cap:400,  price:140000},
+  {n:{de:'Frachtcontainer',en:'Cargo container'},cap:1200, price:600000},
+];
+const GUARD_PRICE = 2500, GUARD_WAGE = 150, GUARD_MAX = 8, VEST_PRICE = 4000, HEAL_PRICE = 60;
+const DEBT_RATE = .05, BANK_RATE = .004, CAMPAIGN_DAYS = 60;
+
+const RANKS = [
+  [-Infinity,{de:'Pleitegeier',en:'Broke'}],
+  [10000,{de:'Kleinganove',en:'Small-timer'}],
+  [50000,{de:'Straßenhändler',en:'Street dealer'}],
+  [250000,{de:'Schmuggler',en:'Smuggler'}],
+  [1000000,{de:'Waffenschieber',en:'Gunrunner'}],
+  [5000000,{de:'Kriegsgewinnler',en:'War profiteer'}],
+  [25000000,{de:'Schwarzmarkt-Baron',en:'Black market baron'}],
+  [100000000,{de:'Pate des Schwarzmarkts',en:'Godfather of the black market'}],
+];
+
+/* ================= i18n ================= */
+let lang = store.get('sm_lang') || 'de';
+const T = {
+de:{
+  tagline:'Waffenhandel · Handelsspiel', name:'Dein Name', namePh:'Namenlos', mode:'Spielmodus',
+  campaign:'Kampagne', campaignD:`${CAMPAIGN_DAYS} Tage. Zahl deine Schulden ab und mach maximal Kasse.`,
+  endless:'Endlos', endlessD:'Kein Zeitlimit. Wird immer gefährlicher. Wie weit kommst du?',
+  start:'Neues Spiel', cont:'Weiterspielen', highscores:'Bestenliste', howto:'Anleitung', back:'Zurück',
+  overwrite:'Dein laufendes Spiel wird überschrieben. Trotzdem neu starten?', yes:'Ja', no:'Nein', ok:'OK', cancel:'Abbrechen',
+  day:'Tag', cash:'Bargeld', bank:'Bank', debt:'Schulden', health:'Gesundheit', heat:'Fahndung', space:'Lager',
+  tMarket:'Markt', tTravel:'Reisen', tCity:'Stadt', tMenu:'Menü',
+  notAvail:'kein Angebot', own:'Besitz', avg:'Ø Einkauf', buy:'Kaufen', sell:'Verkaufen', max:'Max',
+  price:'Preis', total:'Summe', perUnit:'pro Stück', size:'Platz/Stück', noSpace:'Kein Platz mehr', noCash:'Zu wenig Geld',
+  bought:(n,g,p)=>`${n}× ${g} gekauft für ${p}.`, sold:(n,g,p,pr)=>`${n}× ${g} verkauft für ${p}${pr}.`,
+  profit:'Gewinn', loss:'Verlust',
+  travelTo:'Reiseziele', wait:'Einen Tag abwarten', waitD:'Neue Preise, aber Zinsen laufen weiter.',
+  days:n=>n===1?'1 Tag':`${n} Tage`, here:'Du bist hier', tooFar:'Zu spät – Kampagne endet',
+  lastDay:'Letzter Tag! Verkauf deine Ware und zieh Bilanz.', finish:'Bilanz ziehen & beenden',
+  ticket:'Reisekosten',
+  sBank:'Bank', sBankD:'Sicher vor Überfällen. Zinsen: 0,4 % pro Tag. Nur in Hamburg.',
+  deposit:'Einzahlen', withdraw:'Abheben',
+  sShark:'Kredithai Viktor', sSharkD:'Leiht dir Geld. Zinsen: 5 % pro Tag. Lass ihn nicht zu lange warten.',
+  borrow:'Leihen', repay:'Zurückzahlen', homeOnly:'Bank und Kredithai gibt es nur in Hamburg.',
+  sDoc:'Untergrund-Arzt', sDocD:p=>`Flickt dich zusammen. ${p} pro Punkt.`, heal:'Behandeln', healthy:'Du bist kerngesund.',
+  sVeh:'Fahrzeug', sVehD:'Mehr Platz für Ware. Das alte Fahrzeug wird in Zahlung gegeben.', current:'Aktuell', upgrade:'Kaufen',
+  sGuard:'Leibwächter', sGuardD:p=>`Kämpfen für dich. ${p} pro Tag Lohn.`, hire:'Anheuern', fire:'Entlassen',
+  sVest:'Schutzweste', sVestD:'Halbiert erlittenen Schaden in Gefechten.', haveVest:'Du trägst bereits eine Weste.',
+  sBribe:'Kontakte schmieren', sBribeD:'Ein paar Umschläge an die richtigen Leute senken die Fahndung um 30.',
+  bribeDo:'Schmieren',
+  invent:'Lagerbestand', empty:'Leer.', worth:'Vermögen (geschätzt)', rank:'Rang', mode2:'Modus',
+  language:'Sprache', retire:'Ruhestand (Spiel beenden)', retireQ:'Spiel jetzt beenden und Ergebnis speichern?',
+  toTitle:'Hauptmenü', log:'Ereignisse',
+  // events
+  crash:[g=>`Ein Armeedepot wurde geplündert. ${g} sind spottbillig!`, g=>`Ein Container ist „vom Schiff gefallen“. ${g} zum Schleuderpreis!`, g=>`Eine Miliz löst sich auf und verscherbelt ihre ${g}.`],
+  spike:[g=>`Waffenembargo verhängt – ${g} sind extrem gefragt!`, g=>`Ein Warlord kauft alles an ${g}, was er kriegen kann.`, g=>`Die Polizei hat ein Lager hochgenommen. ${g} sind knapp und teuer!`],
+  found:(n,g)=>`Du findest eine herrenlose Kiste: ${n}× ${g}.`,
+  wage:(n,p)=>`Lohn für ${n} Leibwächter: ${p}.`, quit:'Du kannst deine Leibwächter nicht bezahlen. Einer kündigt.',
+  arrived:c=>`Angekommen in ${c}.`,
+  // encounters
+  eCustoms:'Zollkontrolle!', eCustomsD:(n)=>`${n} Zollbeamte durchsuchen deine Fracht. Die Ware ist eindeutig illegal.`,
+  eGang:'Überfall!', eGangD:(n)=>`${n} Bewaffnete einer rivalisierenden Bande stellen dich.`,
+  eShark:'Viktors Schläger', eSharkD:(n,p)=>`${n} Männer von Viktor wollen Geld sehen. Du schuldest ${p}.`,
+  bribe:p=>`Bestechen (${p})`, surrender:'Ware abgeben', payoff:p=>`Zahlen (${p})`, payShark:p=>`Ratenzahlung (${p})`,
+  fight:'Kämpfen', flee:'Fliehen', shoot:'Schießen',
+  bribed:'Die Beamten zählen das Geld und sehen weg.', surrendered:'Deine gesamte Ware wird beschlagnahmt.',
+  paidoff:'Sie nehmen das Geld und verschwinden.', sharkPaid:'Viktor ist fürs Erste zufrieden.',
+  enemies:'Gegner', youHit:n=>`Du triffst ${n===1?'einen Gegner':n+' Gegner'}!`, youMiss:'Daneben!',
+  hitYou:d=>`Du wirst getroffen: −${d} Gesundheit.`, guardDown:'Einer deiner Leibwächter fällt!',
+  fled:'Du entkommst!', fleeFail:'Flucht misslungen!', won:'Alle Gegner ausgeschaltet.',
+  loot:p=>`Du nimmst ihnen ${p} ab.`, customsWon:'Das wird Ärger geben. Deine Fahndungsstufe steigt stark.',
+  lostCargo:'Auf der Flucht verlierst du einen Teil der Ware.',
+  // end
+  dead:'Du bist tot.', deadD:'Im Waffengeschäft stirbt man jung.',
+  over:'Spiel vorbei', overD:(d)=>`Du hast ${d} Tage überlebt.`, score:'Ergebnis', newHS:'Neuer Rekord!',
+  noHS:'Noch keine Einträge.',
+  help:[
+    'Kauf Waffen dort, wo sie billig sind, und verkauf sie dort, wo sie gebraucht werden. Jede Stadt hat eigene Preisniveaus – die Tags <span class="tag lo">billig</span> und <span class="tag hi">teuer</span> zeigen dir, wie der heutige Preis im Vergleich liegt.',
+    'Du startest in Hamburg mit Schulden bei Kredithai Viktor. Seine Zinsen (5 % pro Tag) fressen dich auf, wenn du nicht schnell zurückzahlst. Bank und Kredithai gibt es nur in Hamburg.',
+    'Reisen kostet Zeit und Geld. Je mehr und je schwerere Ware du bewegst, desto höher steigt deine Fahndungsstufe – und desto öfter gerätst du in Kontrollen.',
+    'Größere Fahrzeuge bringen mehr Lagerplatz. Leibwächter und eine Schutzweste helfen bei Überfällen. Bargeld kann geraubt werden – Geld auf der Bank nicht.',
+    'Kampagne: Nach 60 Tagen zählt Bargeld + Bank − Schulden. Endlos: Kein Limit, aber die Welt wird mit jedem Tag gefährlicher. Beende das Spiel über „Ruhestand“, um dein Ergebnis zu sichern.',
+  ],
+},
+en:{
+  tagline:'Arms dealing · Trading game', name:'Your name', namePh:'Nameless', mode:'Game mode',
+  campaign:'Campaign', campaignD:`${CAMPAIGN_DAYS} days. Pay off your debt and make as much as you can.`,
+  endless:'Endless', endlessD:'No time limit. Gets more dangerous. How far can you go?',
+  start:'New game', cont:'Continue', highscores:'High scores', howto:'How to play', back:'Back',
+  overwrite:'Your current game will be overwritten. Start anyway?', yes:'Yes', no:'No', ok:'OK', cancel:'Cancel',
+  day:'Day', cash:'Cash', bank:'Bank', debt:'Debt', health:'Health', heat:'Heat', space:'Cargo',
+  tMarket:'Market', tTravel:'Travel', tCity:'City', tMenu:'Menu',
+  notAvail:'none on offer', own:'Owned', avg:'Avg. cost', buy:'Buy', sell:'Sell', max:'Max',
+  price:'Price', total:'Total', perUnit:'each', size:'Space/unit', noSpace:'No space left', noCash:'Not enough cash',
+  bought:(n,g,p)=>`Bought ${n}× ${g} for ${p}.`, sold:(n,g,p,pr)=>`Sold ${n}× ${g} for ${p}${pr}.`,
+  profit:'profit', loss:'loss',
+  travelTo:'Destinations', wait:'Wait one day', waitD:'New prices, but interest keeps running.',
+  days:n=>n===1?'1 day':`${n} days`, here:'You are here', tooFar:'Too late – campaign ends',
+  lastDay:'Last day! Sell your goods and settle up.', finish:'Settle up & finish',
+  ticket:'Travel cost',
+  sBank:'Bank', sBankD:'Safe from robbery. Interest: 0.4% per day. Hamburg only.',
+  deposit:'Deposit', withdraw:'Withdraw',
+  sShark:'Viktor the loan shark', sSharkD:'Lends you money. Interest: 5% per day. Don\'t keep him waiting.',
+  borrow:'Borrow', repay:'Repay', homeOnly:'The bank and the loan shark are only in Hamburg.',
+  sDoc:'Back-alley doctor', sDocD:p=>`Patches you up. ${p} per point.`, heal:'Treat', healthy:'You are perfectly healthy.',
+  sVeh:'Vehicle', sVehD:'More cargo space. Your old vehicle is traded in.', current:'Current', upgrade:'Buy',
+  sGuard:'Bodyguards', sGuardD:p=>`Fight for you. ${p} per day in wages.`, hire:'Hire', fire:'Dismiss',
+  sVest:'Body armor', sVestD:'Halves damage taken in fights.', haveVest:'You already wear a vest.',
+  sBribe:'Grease palms', sBribeD:'A few envelopes to the right people lower your heat by 30.',
+  bribeDo:'Pay up',
+  invent:'Inventory', empty:'Empty.', worth:'Net worth (est.)', rank:'Rank', mode2:'Mode',
+  language:'Language', retire:'Retire (end game)', retireQ:'End the game now and save your result?',
+  toTitle:'Main menu', log:'Events',
+  crash:[g=>`An army depot was looted. ${g} are dirt cheap!`, g=>`A container "fell off a ship". ${g} at bargain prices!`, g=>`A militia disbanded and is dumping its ${g}.`],
+  spike:[g=>`Arms embargo imposed – ${g} are in huge demand!`, g=>`A warlord is buying all the ${g} he can get.`, g=>`Police raided a warehouse. ${g} are scarce and pricey!`],
+  found:(n,g)=>`You find an abandoned crate: ${n}× ${g}.`,
+  wage:(n,p)=>`Wages for ${n} bodyguards: ${p}.`, quit:'You can\'t pay your bodyguards. One quits.',
+  arrived:c=>`Arrived in ${c}.`,
+  eCustoms:'Customs check!', eCustomsD:(n)=>`${n} customs officers search your cargo. The goods are clearly illegal.`,
+  eGang:'Ambush!', eGangD:(n)=>`${n} armed men from a rival gang corner you.`,
+  eShark:'Viktor\'s thugs', eSharkD:(n,p)=>`${n} of Viktor's men want to see money. You owe ${p}.`,
+  bribe:p=>`Bribe (${p})`, surrender:'Hand over goods', payoff:p=>`Pay (${p})`, payShark:p=>`Installment (${p})`,
+  fight:'Fight', flee:'Run', shoot:'Shoot',
+  bribed:'The officers count the money and look away.', surrendered:'All your goods are confiscated.',
+  paidoff:'They take the money and leave.', sharkPaid:'Viktor is satisfied – for now.',
+  enemies:'Enemies', youHit:n=>`You hit ${n===1?'one enemy':n+' enemies'}!`, youMiss:'Missed!',
+  hitYou:d=>`You're hit: −${d} health.`, guardDown:'One of your bodyguards goes down!',
+  fled:'You got away!', fleeFail:'You couldn\'t escape!', won:'All enemies down.',
+  loot:p=>`You take ${p} off them.`, customsWon:'That will cause trouble. Your heat rises sharply.',
+  lostCargo:'You lose part of your goods while escaping.',
+  dead:'You are dead.', deadD:'In the arms business you die young.',
+  over:'Game over', overD:(d)=>`You survived ${d} days.`, score:'Score', newHS:'New record!',
+  noHS:'No entries yet.',
+  help:[
+    'Buy weapons where they are cheap and sell them where they are needed. Every city has its own price level – the <span class="tag lo">cheap</span> and <span class="tag hi">pricey</span> tags show how today\'s price compares.',
+    'You start in Hamburg owing money to Viktor the loan shark. His interest (5% per day) will eat you alive unless you pay him back fast. The bank and the loan shark are only in Hamburg.',
+    'Travel costs time and money. The more – and the heavier – goods you move, the higher your heat, and the more often you run into checks.',
+    'Bigger vehicles give more cargo space. Bodyguards and body armor help in fights. Cash can be stolen – money in the bank can\'t.',
+    'Campaign: after 60 days your score is cash + bank − debt. Endless: no limit, but the world gets more dangerous every day. End the game via "Retire" to lock in your score.',
+  ],
+}};
+T.de.cheap='billig'; T.de.pricey='teuer'; T.en.cheap='cheap'; T.en.pricey='pricey';
+const t = k => T[lang][k];
+const L = o => typeof o === 'string' ? o : o[lang];
+const gname = id => L(G[id].n);
+const cname = id => C[id][lang];
+const money = n => new Intl.NumberFormat(lang === 'de' ? 'de-DE' : 'en-US', {style:'currency', currency:'USD', maximumFractionDigits:0}).format(Math.round(n));
+const fnum = n => new Intl.NumberFormat(lang === 'de' ? 'de-DE' : 'en-US').format(Math.round(n));
+
+/* ================= state ================= */
+let S = null;          // game state
+let view = 'market';   // active tab
+let screen = 'title';  // title | game | highscores | help
+let selMode = store.get('sm_mode') || 'campaign';
+
+function newGame(mode, name){
+  S = {v:1, mode, name: name || t('namePh'), day:1, maxDay: mode === 'campaign' ? CAMPAIGN_DAYS : 0,
+    city:'hamburg', cash:2000, bank:0, debt:5500, health:100, heat:0, veh:0, guards:0, vest:false,
+    cargo:{}, paid:{}, prices:{}, news:[], log:[], over:false};
+  genPrices();
+  pushNews(t('arrived')(cname('hamburg')));
+  save();
+}
+const save = () => S && store.set('sm_save', S);
+const cap = () => VEHICLES[S.veh].cap;
+const used = () => Object.entries(S.cargo).reduce((a,[id,n]) => a + n * G[id].size, 0);
+const free = () => cap() - used();
+const cargoValue = () => Object.entries(S.cargo).reduce((a,[id,n]) => a + n * (G[id].min + G[id].max) / 2, 0);
+const netWorth = () => S.cash + S.bank - S.debt + cargoValue();
+const score = () => S.cash + S.bank - S.debt;
+const rankOf = v => { let r = RANKS[0][1]; for (const [min,n] of RANKS) if (v >= min) r = n; return L(r); };
+const diff = () => S.mode === 'endless' ? 1 + (S.day - 1) / 40 : 1 + (S.day - 1) / 90;
+
+function pushNews(msg, bad){ S.news.push({m:msg, bad:!!bad}); S.log.unshift({d:S.day, m:msg}); S.log.length = Math.min(S.log.length, 60); }
+
+function genPrices(){
+  const c = C[S.city]; const p = {};
+  const ids = GOODS.map(g => g.id);
+  // 2–4 goods are not on offer today
+  const off = new Set(); const nOff = rint(2, 4);
+  while (off.size < nOff) off.add(pick(ids));
+  for (const g of GOODS){
+    if (off.has(g.id)) { p[g.id] = null; continue; }
+    p[g.id] = Math.max(1, Math.round(rnd(g.min, g.max) * c.m[g.cat] * rnd(.9, 1.1)));
+  }
+  S.prices = p;
+}
+function priceTag(id){
+  const g = G[id], v = S.prices[id]; if (!v) return '';
+  const mid = (g.min + g.max) / 2;
+  if (v < mid * .6) return `<span class="tag lo">${t('cheap')}</span>`;
+  if (v > mid * 1.45) return `<span class="tag hi">${t('pricey')}</span>`;
+  return '';
+}
+
+/* ================= world simulation ================= */
+function dist(a, b){
+  const R = 6371, r = x => x * Math.PI / 180;
+  const dLa = r(b.lat - a.lat), dLo = r(b.lon - a.lon);
+  const h = Math.sin(dLa/2)**2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLo/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function route(to){
+  const km = dist(C[S.city], C[to]);
+  return {km, days: Math.min(4, 1 + Math.floor(km / 3000)), cost: Math.round((120 + km * .09) * (1 + S.veh * .35))};
+}
+
+function dailyTick(){
+  S.day++;
+  if (S.debt > 0) S.debt = Math.round(S.debt * (1 + DEBT_RATE));
+  if (S.bank > 0) S.bank = Math.round(S.bank * (1 + BANK_RATE));
+  S.heat = Math.max(0, S.heat - 4);
+  if (S.guards > 0){
+    const w = S.guards * GUARD_WAGE;
+    if (S.cash >= w) S.cash -= w;
+    else { S.guards--; pushNews(t('quit'), true); }
+  }
+}
+
+function travel(to){
+  const r = route(to);
+  if (S.cash < r.cost) return toast(t('noCash'));
+  S.cash -= r.cost;
+  S.news = [];
+  for (let i = 0; i < r.days; i++) dailyTick();
+  S.city = to;
+  arrive();
+}
+function waitDay(){
+  S.news = [];
+  dailyTick();
+  arrive();
+}
+function arrive(){
+  genPrices();
+  pushNews(t('arrived')(cname(S.city)));
+  // market event
+  if (Math.random() < .3){
+    const avail = GOODS.filter(g => S.prices[g.id]);
+    const g = pick(avail);
+    if (Math.random() < .5){
+      S.prices[g.id] = Math.max(1, Math.round(S.prices[g.id] * rnd(.2, .4)));
+      pushNews(pick(t('crash'))(gname(g.id)));
+    } else {
+      S.prices[g.id] = Math.round(S.prices[g.id] * rnd(2.5, 4));
+      pushNews(pick(t('spike'))(gname(g.id)));
+    }
+  }
+  // found goods
+  if (Math.random() < .06 && free() > 0){
+    const g = pick(GOODS.filter(g => g.size <= free() && g.cat !== 'heavy'));
+    if (g){
+      const n = Math.min(rint(2, 8), Math.floor(free() / g.size));
+      S.cargo[g.id] = (S.cargo[g.id] || 0) + n;
+      S.paid[g.id] = S.paid[g.id] || 0;
+      pushNews(t('found')(n, gname(g.id)));
+    }
+  }
+  view = 'market';
+  save(); render();
+  if (S.mode === 'campaign' && S.day > S.maxDay) return endGame(false);
+  maybeEncounter();
+}
+
+function maybeEncounter(){
+  const d = diff();
+  if (S.debt > 15000 && S.day > 8 && Math.random() < .12 + Math.min(.15, S.debt / 1e6))
+    return encounter('shark');
+  const p = .06 + S.heat / 280 + (S.mode === 'endless' ? Math.min(.18, (S.day - 1) / 500) : 0);
+  if (Math.random() >= p) return;
+  if (used() > 0 && Math.random() < .55 + S.heat / 400) encounter('customs');
+  else encounter('gang');
+}
+
+/* ================= encounters & combat ================= */
+let F = null; // current fight
+function encounter(kind){
+  const d = diff();
+  const n = clamp(Math.round(rnd(1, 3) * d + (kind === 'customs' ? S.heat / 30 : 0)), 1, 14);
+  F = {kind, n, max:n, log:[]};
+  const opts = [];
+  let title, body;
+  if (kind === 'customs'){
+    title = t('eCustoms'); body = t('eCustomsD')(n);
+    const cost = Math.round(Math.max(500, cargoValue() * .15) * (1 + S.heat / 100));
+    opts.push({label:t('bribe')(money(cost)), dis:S.cash < cost, fn:() => { S.cash -= cost; S.heat = clamp(S.heat + 5, 0, 100); done(t('bribed')); }});
+    opts.push({label:t('surrender'), fn:() => { S.cargo = {}; S.paid = {}; S.heat = clamp(S.heat + 10, 0, 100); done(t('surrendered'), true); }});
+  } else if (kind === 'gang'){
+    title = t('eGang'); body = t('eGangD')(n);
+    const cost = Math.round(Math.max(300, S.cash * .25));
+    opts.push({label:t('payoff')(money(cost)), dis:S.cash < cost, fn:() => { S.cash -= cost; done(t('paidoff')); }});
+  } else {
+    title = t('eShark'); body = t('eSharkD')(n, money(S.debt));
+    const cost = Math.round(Math.min(S.debt, Math.max(1000, S.debt * .2)));
+    opts.push({label:t('payShark')(money(cost)), dis:S.cash < cost, fn:() => { S.cash -= cost; S.debt -= cost; done(t('sharkPaid')); }});
+  }
+  opts.unshift({label:t('fight'), cls:'danger', fn:() => fightScreen()});
+  opts.push({label:t('flee'), fn:() => { if (tryFlee()) return; fightScreen(); }});
+  modal({title, body:`<p>${body}</p>`, buttons:opts, locked:true});
+}
+function done(msg, bad){ closeModal(); pushNews(msg, bad); F = null; save(); render(); }
+
+function enemiesShoot(){
+  const d = diff();
+  for (let i = 0; i < F.n; i++){
+    if (Math.random() >= .26 + .03 * d) continue;
+    if (S.guards > 0 && Math.random() < .35){ S.guards--; F.log.push([t('guardDown'), 1]); continue; }
+    const dmg = Math.round(rint(5, 14) * (S.vest ? .5 : 1) * Math.min(2, .8 + d * .2));
+    S.health -= dmg; F.log.push([t('hitYou')(dmg), 1]);
+    if (S.health <= 0){ S.health = 0; break; }
+  }
+}
+function tryFlee(){
+  const ch = clamp(.55 - F.n * .04 + (S.veh === 0 ? .05 : 0), .12, .7);
+  if (Math.random() < ch){
+    let msg = t('fled');
+    if (F.kind === 'customs'){ S.heat = clamp(S.heat + 12, 0, 100); }
+    if (used() > 0 && Math.random() < .35){
+      for (const id in S.cargo){ S.cargo[id] = Math.floor(S.cargo[id] * rnd(.5, .85)); if (!S.cargo[id]) { delete S.cargo[id]; delete S.paid[id]; } }
+      msg += ' ' + t('lostCargo');
+    }
+    done(msg);
+    return true;
+  }
+  F.log.push([t('fleeFail'), 1]);
+  enemiesShoot();
+  return false;
+}
+function shoot(){
+  const shooters = 1 + S.guards;
+  let kills = 0;
+  for (let i = 0; i < shooters && kills < F.n; i++) if (Math.random() < .42) kills++;
+  F.n -= kills;
+  F.log.push([kills ? t('youHit')(kills) : t('youMiss'), 0]);
+  if (F.n <= 0) return fightWon();
+  enemiesShoot();
+  fightScreen();
+}
+function fightWon(){
+  let msg = t('won');
+  if (F.kind === 'customs'){ S.heat = clamp(S.heat + 30, 0, 100); msg += ' ' + t('customsWon'); }
+  else { const l = Math.round(rint(400, 2500) * F.max * diff()); S.cash += l; msg += ' ' + t('loot')(money(l)); }
+  done(msg);
+}
+function fightScreen(){
+  if (S.health <= 0){ closeModal(); F = null; return endGame(true); }
+  render();
+  const foes = Array.from({length:F.max}, (_, i) => `<span class="${i < F.n ? '' : 'x'}"></span>`).join('');
+  const log = F.log.slice(-8).map(([m,b]) => `<p class="${b ? 'down' : 'up'}">${m}</p>`).join('');
+  modal({
+    title: F.kind === 'customs' ? t('eCustoms') : F.kind === 'gang' ? t('eGang') : t('eShark'),
+    body:`<div class="kv"><span>${t('enemies')}</span><b>${F.n}</b></div><div class="foes">${foes}</div>
+      <div class="kv"><span>${t('health')}</span><b class="${S.health < 35 ? 'down' : ''}">${S.health}</b></div>
+      <div class="kv"><span>${t('sGuard')}</span><b>${S.guards}</b></div>
+      ${log ? `<div class="flog">${log}</div>` : ''}`,
+    buttons:[{label:t('shoot'), cls:'danger', fn:shoot}, {label:t('flee'), fn:() => { if (!tryFlee()) fightScreen(); }}],
+    locked:true
+  });
+}
+
+/* ================= trading ================= */
+function trade(id, startMode){
+  const g = G[id], price = S.prices[id];
+  const own = S.cargo[id] || 0;
+  let mode = startMode || (price ? 'buy' : 'sell');
+  if (!price) return;
+  let q = 0;
+  const maxQ = () => mode === 'buy' ? Math.max(0, Math.min(Math.floor(S.cash / price), Math.floor(free() / g.size))) : own;
+  const plHtml = () => {
+    const paid = S.paid[id];
+    if (mode !== 'sell' || q <= 0 || !paid) return '';
+    const diffv = (price - paid) * q;
+    return `<div class="kv"><span>${diffv >= 0 ? t('profit') : t('loss')}</span><b class="${diffv >= 0 ? 'up' : 'down'} num">${money(diffv)}</b></div>`;
+  };
+  const upd = () => {
+    q = clamp(q, 0, maxQ());
+    $('#qn').value = q; $('#qr').value = q;
+    $('#tot').textContent = money(q * price);
+    $('#pl').innerHTML = plHtml();
+    $('.btns .primary').disabled = q <= 0;
+  };
+  const draw = () => {
+    const m = maxQ(); q = clamp(q, 0, m);
+    const paid = S.paid[id];
+    modal({
+      title: gname(id),
+      sub: `${t('price')}: <b class="num">${money(price)}</b> ${t('perUnit')} · ${t('size')}: ${g.size}`,
+      body: `<div class="seg"><button data-m="buy" class="${mode === 'buy' ? 'on' : ''}">${t('buy')}</button><button data-m="sell" class="${mode === 'sell' ? 'on' : ''}" ${own ? '' : 'disabled style="opacity:.4"'}>${t('sell')}</button></div>
+        <div class="kv"><span>${t('own')}</span><b class="num">${fnum(own)}${paid ? ` <span class="dim">(${t('avg')} ${money(paid)})</span>` : ''}</b></div>
+        <div class="kv"><span>${mode === 'buy' ? t('cash') : t('space')}</span><b class="num">${mode === 'buy' ? money(S.cash) : `${fnum(used())}/${fnum(cap())}`}</b></div>
+        <div class="qty"><button data-d="-1">−</button><input type="number" inputmode="numeric" id="qn" value="${q}" min="0" max="${m}"><button data-d="1">+</button></div>
+        <input type="range" id="qr" min="0" max="${m}" value="${q}" ${m ? '' : 'disabled'}>
+        <div class="quick"><button class="btn small" data-f="0">0</button><button class="btn small" data-f=".25">25%</button><button class="btn small" data-f=".5">50%</button><button class="btn small" data-f="1">${t('max')}</button></div>
+        <div class="kv"><span>${t('total')}</span><b class="num" id="tot">${money(q * price)}</b></div><div id="pl">${plHtml()}</div>
+        ${mode === 'buy' && m === 0 ? `<p class="down" style="margin-top:8px">${S.cash < price ? t('noCash') : t('noSpace')}</p>` : ''}`,
+      buttons:[{label: mode === 'buy' ? t('buy') : t('sell'), cls:'primary', dis: q <= 0, keep:true, fn: commit}, {label:t('cancel')}]
+    });
+    const sh = $('.sheet');
+    sh.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; q = 0; draw(); });
+    sh.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { q += +b.dataset.d; upd(); });
+    sh.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { q = Math.floor(m * +b.dataset.f); upd(); });
+    $('#qr').oninput = e => { q = +e.target.value; upd(); };
+    $('#qn').oninput = e => { q = Math.floor(+e.target.value || 0); $('#qr').value = q; $('#tot').textContent = money(clamp(q, 0, m) * price); $('#pl').innerHTML = plHtml(); $('.btns .primary').disabled = q <= 0 || q > m; };
+    $('#qn').onchange = () => upd();
+  };
+  const commit = () => {
+    q = clamp(q, 0, maxQ());
+    if (q <= 0) return;
+    if (mode === 'buy'){
+      const prevN = S.cargo[id] || 0, prevP = S.paid[id] || 0;
+      S.cash -= q * price;
+      S.cargo[id] = prevN + q;
+      S.paid[id] = Math.round((prevN * prevP + q * price) / (prevN + q));
+      pushNews(t('bought')(q, gname(id), money(q * price)));
+    } else {
+      const paid = S.paid[id] || 0;
+      S.cash += q * price;
+      S.cargo[id] -= q;
+      if (!S.cargo[id]){ delete S.cargo[id]; delete S.paid[id]; }
+      const pr = paid ? ` (${(price - paid) >= 0 ? '+' : ''}${money((price - paid) * q)})` : '';
+      pushNews(t('sold')(q, gname(id), money(q * price), pr));
+    }
+    S.heat = clamp(S.heat + q * g.size * HEATF[g.cat], 0, 100);
+    closeModal(); save(); render();
+  };
+  draw();
+}
+
+/* amount picker for bank / loans / doctor */
+function amount(title, sub, max, label, onOk, step){
+  step = step || 1;
+  max = Math.max(0, Math.floor(max / step) * step);
+  let q = max;
+  const draw = () => {
+    q = clamp(q, 0, max);
+    modal({title, sub,
+      body:`<div class="qty"><button data-d="-1">−</button><input type="number" inputmode="numeric" id="qn" value="${q}"><button data-d="1">+</button></div>
+        <input type="range" id="qr" min="0" max="${max}" step="${step}" value="${q}" ${max ? '' : 'disabled'}>
+        <div class="quick"><button class="btn small" data-f="0">0</button><button class="btn small" data-f=".25">25%</button><button class="btn small" data-f=".5">50%</button><button class="btn small" data-f="1">${t('max')}</button></div>`,
+      buttons:[{label, cls:'primary', dis:q <= 0, fn:() => { onOk(q); closeModal(); save(); render(); }}, {label:t('cancel')}]});
+    const sh = $('.sheet');
+    const upd = () => { q = clamp(q, 0, max); $('#qn').value = q; $('#qr').value = q; $('.btns .primary').disabled = q <= 0; };
+    sh.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { q += +b.dataset.d * Math.max(step, Math.round(max / 20 / step) * step || step); upd(); });
+    sh.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { q = Math.floor(max * +b.dataset.f / step) * step; upd(); });
+    $('#qr').oninput = e => { q = +e.target.value; upd(); };
+    $('#qn').onchange = e => { q = Math.floor(+e.target.value || 0); upd(); };
+  };
+  draw();
+}
+
+/* ================= end / scores ================= */
+function endGame(dead){
+  S.over = true;
+  const sc = score();
+  const hs = store.get('sm_hs') || {campaign:[], endless:[]};
+  const list = hs[S.mode] || (hs[S.mode] = []);
+  const entry = {n:S.name, s:sc, d:Math.min(S.day, S.maxDay || S.day), dead, ts:Date.now()};
+  const isTop = !list.length || sc > Math.max(...list.map(e => e.s));
+  list.push(entry); list.sort((a, b) => b.s - a.s); list.length = Math.min(list.length, 10);
+  store.set('sm_hs', hs);
+  store.del('sm_save');
+  render();
+  modal({
+    title: dead ? t('dead') : t('over'),
+    sub: dead ? t('deadD') : t('overD')(entry.d),
+    body:`<div class="kv"><span>${t('cash')}</span><b class="num">${money(S.cash)}</b></div>
+      <div class="kv"><span>${t('bank')}</span><b class="num">${money(S.bank)}</b></div>
+      <div class="kv"><span>${t('debt')}</span><b class="num down">${money(-S.debt)}</b></div>
+      <div class="kv"><span>${t('score')}</span><b class="num" style="color:var(--accent);font-size:18px">${money(sc)}</b></div>
+      <div class="kv"><span>${t('rank')}</span><b>${rankOf(sc)}</b></div>
+      ${isTop && !dead ? `<p style="color:var(--accent);margin-top:10px;font-weight:700">${t('newHS')}</p>` : ''}`,
+    buttons:[{label:t('highscores'), cls:'primary', fn:() => { S = null; screen = 'highscores'; closeModal(); render(); }},
+             {label:t('toTitle'), fn:() => { S = null; screen = 'title'; closeModal(); render(); }}],
+    locked:true
+  });
+}
+
+/* ================= modal & toast ================= */
+function modal({title, sub, body, buttons, locked}){
+  const had = document.querySelector('.ov');
+  closeModal();
+  const ov = document.createElement('div');
+  ov.className = 'ov' + (had ? ' noanim' : '');
+  ov.innerHTML = `<div class="sheet"><h3>${title}</h3>${sub ? `<p class="sub">${sub}</p>` : ''}<div class="body">${body || ''}</div><div class="btns"></div></div>`;
+  const bx = ov.querySelector('.btns');
+  (buttons || [{label:t('ok')}]).forEach(b => {
+    const el = document.createElement('button');
+    el.className = 'btn ' + (b.cls || '');
+    el.textContent = b.label;
+    if (b.dis) el.disabled = true;
+    el.onclick = () => { if (b.fn) b.fn(); else closeModal(); };
+    bx.appendChild(el);
+  });
+  if (!locked) ov.addEventListener('click', e => { if (e.target === ov) closeModal(); });
+  document.body.appendChild(ov);
+}
+function closeModal(){ document.querySelectorAll('.ov').forEach(o => o.remove()); }
+let toastT;
+function toast(m){
+  document.querySelectorAll('.toast').forEach(x => x.remove());
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = m;
+  document.body.appendChild(el); clearTimeout(toastT); toastT = setTimeout(() => el.remove(), 2200);
+}
+function confirmBox(q, fn){ modal({title:q, buttons:[{label:t('yes'), cls:'primary', fn:() => { closeModal(); fn(); }}, {label:t('no')}]}); }
+
+/* ================= rendering ================= */
+const ICON = {
+  market:'<svg viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v11h18V9M9 20v-6h6v6"/></svg>',
+  travel:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
+  city:'<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l5-3v16M10 21V3l9 4v14M13 9h3M13 13h3M13 17h3"/></svg>',
+  menu:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+};
+function render(){
+  document.documentElement.lang = lang;
+  const app = $('#app');
+  if (screen === 'title') return renderTitle(app);
+  if (screen === 'highscores') return renderHS(app);
+  if (screen === 'help') return renderHelp(app);
+  if (!S) { screen = 'title'; return render(); }
+  const c = C[S.city];
+  const heatCol = S.heat > 66 ? 'var(--bad)' : S.heat > 33 ? 'var(--heat)' : 'var(--good)';
+  const hpCol = S.health > 60 ? 'var(--good)' : S.health > 30 ? 'var(--heat)' : 'var(--bad)';
+  app.innerHTML = `
+  <div class="top">
+    <div class="loc"><h2>${c.f} ${cname(S.city)}<small>${L(c.c)}</small></h2>
+      <div class="day num">${t('day')} ${S.day}${S.mode === 'campaign' ? '/' + S.maxDay : ' · ∞'}</div></div>
+    <div class="stats num">
+      <div class="stat"><i>${t('cash')}</i><b>${money(S.cash)}</b></div>
+      <div class="stat"><i>${t('bank')}</i><b>${money(S.bank)}</b></div>
+      <div class="stat"><i>${t('debt')}</i><b class="${S.debt ? 'down' : ''}">${money(S.debt)}</b></div>
+      <div class="stat"><i>${t('health')}</i><b>${S.health}</b><div class="bar"><div style="width:${S.health}%;background:${hpCol}"></div></div></div>
+      <div class="stat"><i>${t('heat')}</i><b>${Math.round(S.heat)}</b><div class="bar"><div style="width:${S.heat}%;background:${heatCol}"></div></div></div>
+      <div class="stat"><i>${t('space')}</i><b>${fnum(used())}/${fnum(cap())}</b><div class="bar"><div style="width:${used() / cap() * 100}%;background:var(--accent)"></div></div></div>
+    </div>
+  </div>
+  <div class="main" id="main"></div>
+  <nav class="tabs">${['market','travel','city','menu'].map(v => `<button data-v="${v}" class="${view === v ? 'on' : ''}">${ICON[v]}${t('t' + v[0].toUpperCase() + v.slice(1))}</button>`).join('')}</nav>`;
+  app.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { view = b.dataset.v; render(); $('#main').scrollTop = 0; });
+  const m = $('#main');
+  ({market:renderMarket, travel:renderTravel, city:renderCity, menu:renderMenu})[view](m);
+}
+
+function lastDayBar(){
+  if (S.mode !== 'campaign' || S.day < S.maxDay) return '';
+  return `<div class="news endbar"><p>${t('lastDay')}</p><button class="btn primary" style="width:100%;margin-top:8px" data-act="finish">${t('finish')}</button></div>`;
+}
+function bindFinish(m){ const b = m.querySelector('[data-act=finish]'); if (b) b.onclick = () => endGame(false); }
+
+function renderMarket(m){
+  const news = S.news.length ? `<div class="news ${S.news.some(n => n.bad) ? 'badn' : ''}">${S.news.slice(-4).map(n => `<p>${n.m}</p>`).join('')}</div>` : '';
+  const rows = GOODS.map(g => {
+    const p = S.prices[g.id], own = S.cargo[g.id] || 0, paid = S.paid[g.id];
+    let sub = own ? `${t('own')}: ${fnum(own)}` : `${t('size')}: ${g.size}`;
+    let cls = '';
+    if (p && own && paid) cls = p >= paid ? 'up' : 'down';
+    return `<button class="item ${p ? '' : 'off'}" data-g="${g.id}" ${p ? '' : 'disabled'}>
+      <div class="nm"><b>${gname(g.id)}</b><span class="num">${sub}</span></div>
+      <div class="pr num">${p ? `<b class="${cls}">${money(p)}</b><span>${priceTag(g.id)}</span>` : `<span class="dim">${t('notAvail')}</span>`}</div></button>`;
+  }).join('');
+  m.innerHTML = lastDayBar() + news + `<div class="list">${rows}</div>`;
+  m.querySelectorAll('[data-g]').forEach(b => b.onclick = () => trade(b.dataset.g));
+  bindFinish(m);
+}
+
+function renderTravel(m){
+  const canWait = S.mode === 'endless' || S.day < S.maxDay;
+  const rows = CITIES.filter(c => c.id !== S.city).map(c => {
+    const r = route(c.id);
+    const late = S.mode === 'campaign' && S.day + r.days > S.maxDay;
+    const dis = late || S.cash < r.cost;
+    return {c, r, late, dis};
+  }).sort((a, b) => a.r.km - b.r.km).map(({c, r, late, dis}) => `
+    <button class="item ${dis ? 'off' : ''}" data-c="${c.id}" ${dis ? 'disabled' : ''}>
+      <div class="nm"><b>${c.f} ${cname(c.id)}</b><span>${L(c.c)} · ${fnum(r.km)} km</span></div>
+      <div class="pr num"><b>${t('days')(r.days)}</b><span class="${S.cash < r.cost ? 'down' : 'dim'}">${late ? t('tooFar') : money(r.cost)}</span></div></button>`).join('');
+  m.innerHTML = lastDayBar() + `
+    <button class="item ${canWait ? '' : 'off'}" data-act="wait" ${canWait ? '' : 'disabled'}><div class="nm"><b>⏳ ${t('wait')}</b><span>${t('waitD')}</span></div></button>
+    <div class="sec">${t('travelTo')}</div><div class="list">${rows}</div>`;
+  m.querySelector('[data-act=wait]').onclick = waitDay;
+  m.querySelectorAll('[data-c]').forEach(b => b.onclick = () => travel(b.dataset.c));
+  bindFinish(m);
+}
+
+function renderCity(m){
+  const home = C[S.city].home;
+  const v = VEHICLES[S.veh], nv = VEHICLES[S.veh + 1];
+  const tradeIn = Math.round(v.price * .5);
+  const healCost = (100 - S.health) * HEAL_PRICE;
+  const bribeCost = Math.round(2000 + S.heat * 120 * diff());
+  const limit = Math.max(0, Math.max(25000, netWorth() * 2) - S.debt);
+  let h = lastDayBar();
+  if (home){
+    h += `<div class="sec">Hamburg</div>
+    <div class="card"><h3>🏦 ${t('sBank')}</h3><p>${t('sBankD')}</p>
+      <div class="kv"><span>${t('bank')}</span><b class="num">${money(S.bank)}</b></div>
+      <div class="row"><button class="btn small" data-a="dep" ${S.cash > 0 ? '' : 'disabled'}>${t('deposit')}</button><button class="btn small" data-a="wd" ${S.bank > 0 ? '' : 'disabled'}>${t('withdraw')}</button></div></div>
+    <div class="card" style="margin-top:8px"><h3>🦈 ${t('sShark')}</h3><p>${t('sSharkD')}</p>
+      <div class="kv"><span>${t('debt')}</span><b class="num ${S.debt ? 'down' : ''}">${money(S.debt)}</b></div>
+      <div class="row"><button class="btn small" data-a="rep" ${S.debt > 0 && S.cash > 0 ? '' : 'disabled'}>${t('repay')}</button><button class="btn small" data-a="bor" ${limit > 0 ? '' : 'disabled'}>${t('borrow')}</button></div></div>`;
+  } else {
+    h += `<div class="news" style="background:var(--panel);border-color:var(--line)"><p class="dim">${t('homeOnly')}</p></div>`;
+  }
+  h += `<div class="sec">${cname(S.city)}</div>
+  <div class="list">
+    <div class="card"><h3>🚚 ${t('sVeh')}</h3><p>${t('sVehD')}</p>
+      <div class="kv"><span>${t('current')}</span><b>${L(v.n)} · ${fnum(v.cap)}</b></div>
+      ${nv ? `<div class="kv"><span>${L(nv.n)} · ${fnum(nv.cap)}</span><b class="num">${money(nv.price - tradeIn)}</b></div>
+      <button class="btn small" style="width:100%;margin-top:6px" data-a="veh" ${S.cash >= nv.price - tradeIn ? '' : 'disabled'}>${t('upgrade')}</button>` : ''}</div>
+    <div class="card"><h3>🕶️ ${t('sGuard')}</h3><p>${t('sGuardD')(money(GUARD_WAGE))}</p>
+      <div class="kv"><span>${t('sGuard')}</span><b>${S.guards}/${GUARD_MAX}</b></div>
+      <div class="row"><button class="btn small" data-a="hire" ${S.guards < GUARD_MAX && S.cash >= GUARD_PRICE ? '' : 'disabled'}>${t('hire')} (${money(GUARD_PRICE)})</button><button class="btn small" data-a="fire" ${S.guards ? '' : 'disabled'}>${t('fire')}</button></div></div>
+    <div class="card"><h3>🦺 ${t('sVest')}</h3><p>${S.vest ? t('haveVest') : t('sVestD')}</p>
+      ${S.vest ? '' : `<button class="btn small" style="width:100%" data-a="vest" ${S.cash >= VEST_PRICE ? '' : 'disabled'}>${t('upgrade')} (${money(VEST_PRICE)})</button>`}</div>
+    <div class="card"><h3>🩺 ${t('sDoc')}</h3><p>${S.health >= 100 ? t('healthy') : t('sDocD')(money(HEAL_PRICE))}</p>
+      ${S.health < 100 ? `<button class="btn small" style="width:100%" data-a="heal" ${S.cash >= HEAL_PRICE ? '' : 'disabled'}>${t('heal')}</button>` : ''}</div>
+    <div class="card"><h3>✉️ ${t('sBribe')}</h3><p>${t('sBribeD')}</p>
+      <div class="kv"><span>${t('heat')}</span><b>${Math.round(S.heat)}</b></div>
+      <button class="btn small" style="width:100%;margin-top:6px" data-a="bribe" ${S.heat > 0 && S.cash >= bribeCost ? '' : 'disabled'}>${t('bribeDo')} (${money(bribeCost)})</button></div>
+  </div>`;
+  m.innerHTML = h;
+  const A = {
+    dep:() => amount(t('deposit'), `${t('cash')}: ${money(S.cash)}`, S.cash, t('deposit'), q => { S.cash -= q; S.bank += q; }),
+    wd:() => amount(t('withdraw'), `${t('bank')}: ${money(S.bank)}`, S.bank, t('withdraw'), q => { S.bank -= q; S.cash += q; }),
+    rep:() => amount(t('repay'), `${t('debt')}: ${money(S.debt)}`, Math.min(S.cash, S.debt), t('repay'), q => { S.cash -= q; S.debt -= q; }),
+    bor:() => amount(t('borrow'), `${t('debt')}: ${money(S.debt)}`, limit, t('borrow'), q => { S.cash += q; S.debt += q; }, 100),
+    veh:() => { S.cash -= nv.price - tradeIn; S.veh++; save(); render(); },
+    hire:() => { S.cash -= GUARD_PRICE; S.guards++; save(); render(); },
+    fire:() => { S.guards--; save(); render(); },
+    vest:() => { S.cash -= VEST_PRICE; S.vest = true; save(); render(); },
+    heal:() => amount(t('heal'), t('sDocD')(money(HEAL_PRICE)), Math.min(100 - S.health, Math.floor(S.cash / HEAL_PRICE)), t('heal'), q => { S.cash -= q * HEAL_PRICE; S.health += q; }),
+    bribe:() => { S.cash -= bribeCost; S.heat = Math.max(0, S.heat - 30); save(); render(); },
+  };
+  m.querySelectorAll('[data-a]').forEach(b => b.onclick = A[b.dataset.a]);
+  bindFinish(m);
+}
+
+function renderMenu(m){
+  const inv = Object.entries(S.cargo);
+  m.innerHTML = `
+    <div class="card">
+      <div class="kv"><span>${t('name')}</span><b>${esc(S.name)}</b></div>
+      <div class="kv"><span>${t('mode2')}</span><b>${S.mode === 'campaign' ? t('campaign') : t('endless')}</b></div>
+      <div class="kv"><span>${t('worth')}</span><b class="num">${money(netWorth())}</b></div>
+      <div class="kv"><span>${t('rank')}</span><b>${rankOf(netWorth())}</b></div>
+    </div>
+    <div class="sec">${t('invent')}</div>
+    <div class="card">${inv.length ? inv.map(([id, n]) => `<div class="kv"><span>${gname(id)}</span><b class="num">${fnum(n)}${S.paid[id] ? ` <span class="dim">· ${t('avg')} ${money(S.paid[id])}</span>` : ''}</b></div>`).join('') : `<p style="margin:0">${t('empty')}</p>`}</div>
+    <div class="sec">${t('language')}</div>
+    <div class="langsw" style="justify-content:flex-start"><button data-l="de" class="${lang === 'de' ? 'on' : ''}">Deutsch</button><button data-l="en" class="${lang === 'en' ? 'on' : ''}">English</button></div>
+    <div class="sec">${t('log')}</div>
+    <div class="card" style="font-size:13px">${S.log.slice(0, 15).map(l => `<div class="kv"><span>${l.m}</span><b class="dim" style="font-weight:500;padding-left:10px">${l.d}</b></div>`).join('')}</div>
+    <div class="list" style="margin-top:14px">
+      <button class="btn" data-a="help">${t('howto')}</button>
+      <button class="btn" data-a="title">${t('toTitle')}</button>
+      <button class="btn danger" data-a="retire">${t('retire')}</button>
+    </div>`;
+  m.querySelectorAll('[data-l]').forEach(b => b.onclick = () => setLang(b.dataset.l));
+  m.querySelector('[data-a=help]').onclick = () => { screen = 'help'; render(); };
+  m.querySelector('[data-a=title]').onclick = () => { save(); screen = 'title'; render(); };
+  m.querySelector('[data-a=retire]').onclick = () => confirmBox(t('retireQ'), () => endGame(false));
+}
+
+function setLang(l){ lang = l; store.set('sm_lang', l); render(); }
+
+function renderTitle(app){
+  const saved = store.get('sm_save');
+  const canCont = saved && !saved.over;
+  app.innerHTML = `<div class="title">
+    <div class="logo"><h1>SCHWARZMARKT</h1><p>${t('tagline')}</p></div>
+    <div class="langsw"><button data-l="de" class="${lang === 'de' ? 'on' : ''}">Deutsch</button><button data-l="en" class="${lang === 'en' ? 'on' : ''}">English</button></div>
+    ${canCont ? `<button class="btn primary" data-a="cont">${t('cont')} · ${esc(saved.name)} · ${t('day')} ${saved.day}</button>` : ''}
+    <div class="field"><label>${t('name')}</label><input id="nm" maxlength="20" placeholder="${t('namePh')}" value="${esc(store.get('sm_name') || '')}"></div>
+    <div class="field"><label>${t('mode')}</label>
+      <div class="modes">
+        <button class="mode ${selMode === 'campaign' ? 'sel' : ''}" data-mode="campaign"><b>${t('campaign')}</b><span>${t('campaignD')}</span></button>
+        <button class="mode ${selMode === 'endless' ? 'sel' : ''}" data-mode="endless"><b>∞ ${t('endless')}</b><span>${t('endlessD')}</span></button>
+      </div></div>
+    <button class="btn ${canCont ? '' : 'primary'}" data-a="start">${t('start')}</button>
+    <div class="row"><button class="btn" data-a="hs">${t('highscores')}</button><button class="btn" data-a="help">${t('howto')}</button></div>
+  </div>`;
+  app.querySelectorAll('[data-l]').forEach(b => b.onclick = () => setLang(b.dataset.l));
+  app.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { selMode = b.dataset.mode; store.set('sm_mode', selMode); render(); });
+  const nm = $('#nm'); nm.oninput = () => store.set('sm_name', nm.value);
+  const start = () => { newGame(selMode, nm.value.trim()); view = 'market'; screen = 'game'; render(); };
+  app.querySelector('[data-a=start]').onclick = () => canCont ? confirmBox(t('overwrite'), start) : start();
+  if (canCont) app.querySelector('[data-a=cont]').onclick = () => { S = saved; view = 'market'; screen = 'game'; render(); };
+  app.querySelector('[data-a=hs]').onclick = () => { screen = 'highscores'; render(); };
+  app.querySelector('[data-a=help]').onclick = () => { screen = 'help'; render(); };
+}
+
+let hsTab = 'campaign';
+function renderHS(app){
+  const hs = store.get('sm_hs') || {};
+  const list = hs[hsTab] || [];
+  app.innerHTML = `<div class="title">
+    <div class="logo"><h1 style="font-size:28px">${t('highscores').toUpperCase()}</h1></div>
+    <div class="seg"><button data-t="campaign" class="${hsTab === 'campaign' ? 'on' : ''}">${t('campaign')}</button><button data-t="endless" class="${hsTab === 'endless' ? 'on' : ''}">∞ ${t('endless')}</button></div>
+    <div class="card">${list.length ? `<table class="hs num">${list.map((e, i) => `<tr><td class="dim">${i + 1}.</td><td>${e.dead ? '† ' : ''}${esc(e.n)}<br><span class="dim" style="font-size:12px">${rankOf(e.s)} · ${t('day')} ${e.d}</span></td><td><b>${money(e.s)}</b></td></tr>`).join('')}</table>` : `<p style="margin:0">${t('noHS')}</p>`}</div>
+    <button class="btn" data-a="back">${t('back')}</button></div>`;
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { hsTab = b.dataset.t; render(); });
+  app.querySelector('[data-a=back]').onclick = () => { screen = S ? 'game' : 'title'; render(); };
+}
+function renderHelp(app){
+  app.innerHTML = `<div class="title">
+    <div class="logo"><h1 style="font-size:28px">${t('howto').toUpperCase()}</h1></div>
+    <div class="card help">${t('help').map(p => `<p>${p}</p>`).join('')}</div>
+    <button class="btn" data-a="back">${t('back')}</button></div>`;
+  app.querySelector('[data-a=back]').onclick = () => { screen = S ? 'game' : 'title'; render(); };
+}
+
+render();
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
