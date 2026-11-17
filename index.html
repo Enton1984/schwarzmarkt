@@ -125,6 +125,10 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:6px 0 4px}
 .toast{position:fixed;left:50%;top:calc(12px + var(--safe-t));transform:translateX(-50%);background:#000e;border:1px solid var(--line);
   padding:9px 14px;border-radius:20px;font-size:13.5px;z-index:20;animation:fade .15s;max-width:90%;text-align:center}
 .noanim,.noanim .sheet{animation:none}
+.item .sp{flex:none;display:block}
+.chart{background:var(--bg);border-radius:10px;padding:8px 10px 6px;margin-bottom:12px}
+.chart svg{display:block;margin:4px 0}
+.chl{display:flex;justify-content:space-between;font-size:11.5px;gap:8px}
 .chips{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 10px;padding:0 16px 2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chips button{flex:none;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:7px 13px;font-size:13px;color:var(--dim)}
@@ -399,6 +403,8 @@ en:{
   ],
 }};
 T.de.cheap='billig'; T.de.pricey='teuer'; T.en.cheap='cheap'; T.en.pricey='pricey';
+Object.assign(T.de, {hist:'Preisverlauf hier', range:'Spanne', today:'heute', daysAgo:n => `vor ${n} Tagen`});
+Object.assign(T.en, {hist:'Price history here', range:'Range', today:'today', daysAgo:n => `${n} days ago`});
 Object.assign(T.de, {startCap:'Start', withDebt:'Mit Schulden', noDebt:'Ohne Schulden', noDebtShort:'ohne Schulden',
   withDebtD:'Klassisch: 2.000 $ Bargeld, 5.500 $ Schulden bei Viktor.', noDebtD:'Entspannt: 2.000 $ Bargeld, keine Schulden.',
   cats:{all:'Alle', pistol:'Pistolen', smg:'MPs', rifle:'Gewehre', heavy:'Schwer', mil:'Militär', ammo:'Munition', own:'Im Lager'}});
@@ -440,17 +446,67 @@ const diff = () => S.mode === 'endless' ? 1 + (S.day - 1) / 40 : 1 + (S.day - 1)
 
 function pushNews(msg, bad){ S.news.push({m:msg, bad:!!bad}); S.log.unshift({d:S.day, m:msg}); S.log.length = Math.min(S.log.length, 60); }
 
-function genPrices(){
-  const c = C[S.city]; const p = {};
+/* Prices: every city's market is simulated every day, so each product has a price history.
+   S.hist[city][good] = last HIST_LEN daily prices (null = not on offer that day).
+   S.walk[city][good] = hidden current price level (keeps moving even when not on offer). */
+const HIST_LEN = 14;
+function simDay(){
+  S.hist = S.hist || {}; S.walk = S.walk || {};
   const ids = GOODS.map(g => g.id);
-  // roughly a quarter to 40 % of goods are not on offer today
-  const off = new Set(); const nOff = Math.round(ids.length * rnd(.25, .4));
-  while (off.size < nOff) off.add(pick(ids));
-  for (const g of GOODS){
-    if (off.has(g.id) || Math.random() > (g.av ?? 1)) { p[g.id] = null; continue; }
-    p[g.id] = Math.max(1, Math.round(rnd(g.min, g.max) * (c.m[g.cat] ?? c.m.heavy) * rnd(.9, 1.1)));
+  for (const c of CITIES){
+    const h = S.hist[c.id] || (S.hist[c.id] = {});
+    const w = S.walk[c.id] || (S.walk[c.id] = {});
+    // roughly a quarter to 40 % of goods are not on offer on a given day
+    const off = new Set(); const nOff = Math.round(ids.length * rnd(.25, .4));
+    while (off.size < nOff) off.add(pick(ids));
+    for (const g of GOODS){
+      const k = c.m[g.cat] ?? c.m.heavy;
+      const mid = (g.min + g.max) / 2 * k, lo = g.min * k * .8, hi = g.max * k * 1.1;
+      // mean-reverting random walk: trends exist, but prices drift back toward the city's norm
+      let v = w[g.id] ?? rnd(g.min, g.max) * k;
+      v = clamp(v + (mid - v) * .22 + mid * rnd(-.32, .32), lo, hi);
+      w[g.id] = v;
+      const a = h[g.id] || (h[g.id] = []);
+      a.push(off.has(g.id) || Math.random() > (g.av ?? 1) ? null : Math.max(1, Math.round(v)));
+      if (a.length > HIST_LEN) a.shift();
+    }
   }
-  S.prices = p;
+}
+function genPrices(){
+  if (!S.hist) for (let i = 0; i < HIST_LEN; i++) simDay();   // new game or old save: backfill history
+  const h = S.hist[S.city];
+  S.prices = Object.fromEntries(GOODS.map(g => [g.id, h[g.id] ? h[g.id][h[g.id].length - 1] : null]));
+}
+function setPrice(id, v){
+  S.prices[id] = v;
+  const a = S.hist[S.city][id]; a[a.length - 1] = v;
+  S.walk[S.city][id] = v;
+}
+
+/* sparkline of a product's price history in the current city */
+function spark(id, W, H, big){
+  const a = (S.hist && S.hist[S.city][id]) || [];
+  const pts = a.map((v, i) => [i, v]).filter(p => p[1] != null);
+  const n = HIST_LEN - 1;
+  if (pts.length < 2) return big ? '' : `<svg class="sp" width="${W}" height="${H}"></svg>`;
+  const vs = pts.map(p => p[1]), lo = Math.min(...vs), hi = Math.max(...vs), r = hi - lo || 1;
+  const pad = big ? 6 : 3;
+  const x = i => pad + (i + (HIST_LEN - a.length)) * (W - 2 * pad) / n;
+  const y = v => H - pad - (v - lo) / r * (H - 2 * pad);
+  const line = pts.map(([i, v]) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const last = a[a.length - 1];
+  const col = last == null ? 'var(--dim)' : last <= lo + r * .33 ? 'var(--good)' : last >= hi - r * .33 ? 'var(--bad)' : 'var(--accent)';
+  const dots = big ? pts.map(([i, v]) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.2" fill="var(--accent)"/>`).join('') : '';
+  const end = last != null ? `<circle cx="${x(a.length - 1).toFixed(1)}" cy="${y(last).toFixed(1)}" r="${big ? 4 : 2.6}" fill="${col}"/>` : '';
+  return `<svg class="sp" viewBox="0 0 ${W} ${H}" width="${big ? '100%' : W}" height="${H}" preserveAspectRatio="none">
+    <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="${big ? 2 : 1.6}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" opacity=".85"/>${dots}${end}</svg>`;
+}
+function chartBlock(id){
+  const a = (S.hist && S.hist[S.city][id]) || [];
+  const vs = a.filter(v => v != null);
+  if (vs.length < 2) return '';
+  return `<div class="chart"><div class="chl"><span>${t('hist')}</span><span>${t('range')}: ${money(Math.min(...vs))} – ${money(Math.max(...vs))}</span></div>
+    ${spark(id, 320, 70, true)}<div class="chl dim"><span>${t('daysAgo')(HIST_LEN - 1)}</span><span>${t('today')}</span></div></div>`;
 }
 function priceTag(id){
   const g = G[id], v = S.prices[id]; if (!v) return '';
@@ -475,6 +531,7 @@ function route(to){
 
 function dailyTick(){
   S.day++;
+  simDay();
   if (S.debt > 0) S.debt = Math.round(S.debt * (1 + DEBT_RATE));
   if (S.bank > 0) S.bank = Math.round(S.bank * (1 + BANK_RATE));
   S.heat = Math.max(0, S.heat - 4);
@@ -507,10 +564,10 @@ function arrive(){
     const avail = GOODS.filter(g => S.prices[g.id]);
     const g = pick(avail);
     if (Math.random() < .5){
-      S.prices[g.id] = Math.max(1, Math.round(S.prices[g.id] * rnd(.2, .4)));
+      setPrice(g.id, Math.max(1, Math.round(S.prices[g.id] * rnd(.2, .4))));
       pushNews(pick(t('crash'))(gname(g.id)));
     } else {
-      S.prices[g.id] = Math.round(S.prices[g.id] * rnd(2.5, 4));
+      setPrice(g.id, Math.round(S.prices[g.id] * rnd(2.5, 4)));
       pushNews(pick(t('spike'))(gname(g.id)));
     }
   }
@@ -653,7 +710,7 @@ function trade(id, startMode){
     modal({
       title: gname(id),
       sub: `${t('price')}: <b class="num">${money(price)}</b> ${t('perUnit')} · ${t('size')}: ${g.size}`,
-      body: `<div class="seg"><button data-m="buy" class="${mode === 'buy' ? 'on' : ''}">${t('buy')}</button><button data-m="sell" class="${mode === 'sell' ? 'on' : ''}" ${own ? '' : 'disabled style="opacity:.4"'}>${t('sell')}</button></div>
+      body: `${chartBlock(id)}<div class="seg"><button data-m="buy" class="${mode === 'buy' ? 'on' : ''}">${t('buy')}</button><button data-m="sell" class="${mode === 'sell' ? 'on' : ''}" ${own ? '' : 'disabled style="opacity:.4"'}>${t('sell')}</button></div>
         <div class="kv"><span>${t('own')}</span><b class="num">${fnum(own)}${paid ? ` <span class="dim">(${t('avg')} ${money(paid)})</span>` : ''}</b></div>
         <div class="kv"><span>${mode === 'buy' ? t('cash') : t('space')}</span><b class="num">${mode === 'buy' ? money(S.cash) : `${fnum(used())}/${fnum(cap())}`}</b></div>
         <div class="qty"><button data-d="-1">−</button><input type="number" inputmode="numeric" id="qn" value="${q}" min="0" max="${m}"><button data-d="1">+</button></div>
@@ -828,6 +885,7 @@ function renderMarket(m){
     if (p && own && paid) cls = p >= paid ? 'up' : 'down';
     return `<button class="item ${p ? '' : 'off'}" data-g="${g.id}" ${p ? '' : 'disabled'}>
       <div class="nm"><b>${gname(g.id)}</b><span class="num">${sub}</span></div>
+      ${spark(g.id, 58, 24)}
       <div class="pr num">${p ? `<b class="${cls}">${money(p)}</b><span>${priceTag(g.id)}</span>` : `<span class="dim">${t('notAvail')}</span>`}</div></button>`;
   }).join('');
   m.innerHTML = lastDayBar() + news + chips + `<div class="list">${rows || `<p class="dim">${t('empty')}</p>`}</div>`;
